@@ -3,6 +3,34 @@ document.addEventListener('DOMContentLoaded', function () {
     var savedLang = localStorage.getItem('ecowash_lang');
     if (savedLang) { LANG.current = savedLang; }
 
+    /* QR Check-in handler */
+    var checkinId = new URLSearchParams(window.location.search).get('checkin');
+    if (checkinId) {
+        var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+        var found = null;
+        bookings.some(function (b) { if (b.id === checkinId) { found = b; return true; } });
+        if (found) {
+            found.status = 'en_cours';
+            localStorage.setItem('ecowash_bookings', JSON.stringify(bookings));
+            var toast = document.getElementById('toast-container');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast-container';
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999';
+                document.body.appendChild(toast);
+            }
+            if (typeof showToast === 'function') {
+                showToast('✅ Check-in confirmé pour ' + found.name + ' !', 'success');
+            }
+            logActivity('Check-in QR : ' + found.name + ' (' + found.id + ')');
+            /* Remove param from URL */
+            window.history.replaceState({}, '', window.location.pathname);
+        } else {
+            if (typeof showToast === 'function') showToast('❌ Réservation introuvable', 'error');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }
+
     initNav();
     initTheme();
     initLang();
@@ -336,6 +364,7 @@ function initBooking() {
         scheduleBookingReminder(data);
         sendBookingEmail(data);
         sendBookingWhatsApp(data);
+        sendBookingSMS(data);
 
         logActivity('Nouveau rendez-vous : ' + data.name + ' - ' + data.service + ' le ' + data.date);
 
@@ -1013,6 +1042,31 @@ function initPWAInstall() {
     var installBar = document.getElementById('install-bar');
     var installBtn = document.getElementById('install-btn');
 
+    function showCustomInstallPrompt() {
+        if (!deferredPrompt) return;
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+        overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--card-bg);border-radius:16px;padding:30px;max-width:360px;width:100%;text-align:center;animation:popIn .3s ease';
+        box.innerHTML = '<div style="font-size:3rem;margin-bottom:10px">🫧</div>' +
+            '<h3 style="margin-bottom:8px">Installer EcoWash</h3>' +
+            '<p style="color:var(--gray);font-size:.9rem;margin-bottom:20px">Ajoutez EcoWash à votre écran d\'accueil pour un accès rapide et des notifications.</p>' +
+            '<button id="custom-install-btn" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:1rem;cursor:pointer;margin-bottom:8px">📲 Installer</button>' +
+            '<button onclick="this.closest(\'div\').closest(\'div\').remove()" style="width:100%;padding:8px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:.85rem">Plus tard</button>';
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        document.getElementById('custom-install-btn').addEventListener('click', function () {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function () {
+                deferredPrompt = null;
+                overlay.remove();
+                if (installBar) installBar.classList.remove('show');
+            });
+        });
+    }
+
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         deferredPrompt = e;
@@ -1020,15 +1074,32 @@ function initPWAInstall() {
     });
 
     if (installBtn) {
-        installBtn.addEventListener('click', function () {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(function () {
-                deferredPrompt = null;
-                if (installBar) installBar.classList.remove('show');
-            });
-        });
+        installBtn.addEventListener('click', showCustomInstallPrompt);
     }
+
+    /* Custom install button floating */
+    var fab = document.createElement('button');
+    fab.id = 'pwa-fab';
+    fab.innerHTML = '📲';
+    fab.title = 'Installer EcoWash';
+    fab.style.cssText = 'position:fixed;bottom:90px;right:15px;z-index:999;width:50px;height:50px;border-radius:50%;background:var(--primary);color:white;border:none;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 15px rgba(46,204,113,.4);transition:transform .3s,opacity .3s;display:none';
+    fab.onmouseover = function () { this.style.transform = 'scale(1.1)'; };
+    fab.onmouseout = function () { this.style.transform = 'scale(1)'; };
+    fab.onclick = showCustomInstallPrompt;
+    document.body.appendChild(fab);
+
+    window.addEventListener('appinstalled', function () {
+        if (installBar) installBar.classList.remove('show');
+        if (fab) fab.style.display = 'none';
+        showToast('✅ EcoWash installé !', 'success');
+    });
+
+    setTimeout(function () {
+        if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+            fab.style.display = 'block';
+            setTimeout(function () { fab.style.opacity = '1'; }, 100);
+        }
+    }, 5000);
 
     if ('getInstalledRelatedApps' in navigator) {
         navigator.getInstalledRelatedApps().then(function (apps) {
@@ -1315,6 +1386,26 @@ function sendBookingWhatsApp(data) {
     });
 }
 
+/* === SMS NOTIFICATION === */
+function sendSMS(phone, message) {
+    var cfg = C.sms || {};
+    if (!cfg.api || !cfg.apiKey) {
+        console.log('SMS non envoyé: API non configurée');
+        return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', cfg.api, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + cfg.apiKey);
+    xhr.send(JSON.stringify({ to: phone, from: cfg.sender || 'EcoWash', text: message }));
+}
+function sendBookingSMS(data) {
+    if (typeof C === 'undefined' || !C.sms || !C.sms.api) return;
+    var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+    var msg = 'EcoWash - Rendez-vous confirmé le ' + data.date + ' à ' + data.time + ' pour ' + (svcNames[data.service] || data.service) + '. Merci !';
+    sendSMS(data.phone, msg);
+}
+
 /* === LOG ACTIVITY (also used by admin) === */
 function logActivity(msg) {
     var logs = JSON.parse(localStorage.getItem('ecowash_logs') || '[]');
@@ -1406,11 +1497,14 @@ function renderClientDashboard(phone) {
     try { points += parseInt(localStorage.getItem('ecowash_extra_points') || '0'); } catch(e) {}
 
     var totalSpent = myBookings.reduce(function (sum, b) { return sum + ({ simple: 1000, complet: 2500, premium: 4000 }[b.service] || 0); }, 0);
+    var upcoming = myBookings.filter(function (b) { return b.date >= new Date().toISOString().split('T')[0] && b.status !== 'annulé' && b.status !== 'terminé'; });
+    var completed = myBookings.filter(function (b) { return b.status === 'terminé' || b.date < new Date().toISOString().split('T')[0]; });
 
     document.getElementById('client-stats').innerHTML =
         '<div class="stat-card"><div class="num">' + myBookings.length + '</div><div class="label">Lavages</div></div>' +
         '<div class="stat-card"><div class="num">' + totalSpent.toLocaleString() + ' F</div><div class="label">Dépensé</div></div>' +
-        '<div class="stat-card"><div class="num">' + getBadges(myBookings.length).length + '</div><div class="label">Badges</div></div>';
+        '<div class="stat-card"><div class="num">' + getBadges(myBookings.length).length + '</div><div class="label">Badges</div></div>' +
+        '<div class="stat-card"><div class="num">' + upcoming.length + '</div><div class="label">À venir</div></div>';
 
     document.getElementById('ci-water').textContent = (myBookings.length * 300).toLocaleString() + ' L';
     document.getElementById('ci-co2').textContent = (myBookings.length * 3.5).toLocaleString() + ' kg';
@@ -1424,21 +1518,74 @@ function renderClientDashboard(phone) {
     if (!badges.length) badgesHtml = '<div style="color:var(--gray);font-size:.85rem">Pas encore de badges. Réservez vos premiers lavages !</div>';
     document.getElementById('client-badges').innerHTML = badgesHtml;
 
+    var svcNames = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
+    var statusLabels = { confirmé: 'Confirmé', en_cours: 'En cours', terminé: 'Terminé', annulé: 'Annulé' };
+    var totalBookings = myBookings.length;
+
+    /* Rendez-vous à venir */
     var hist = document.getElementById('client-history');
-    if (!myBookings.length) {
-        hist.innerHTML = '<div class="empty-msg">Aucun lavage effectué pour le moment.</div>';
-        return;
+    var html = '<h4 style="margin-bottom:10px">📅 Rendez-vous à venir (' + upcoming.length + ')</h4>';
+    if (!upcoming.length) {
+        html += '<div class="empty-msg" style="font-size:.9rem">Aucun rendez-vous à venir. <a href="#rendezvous" onclick="document.getElementById(\'client-modal\').close();document.querySelector(\'.close\')?.click()" style="color:var(--primary)">Réserver maintenant</a></div>';
+    } else {
+        for (var i = upcoming.length - 1; i >= 0; i--) {
+            var b = upcoming[i];
+            html += '<div class="msg-card" style="padding:12px;margin-bottom:8px">' +
+                '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                '<div><strong>' + b.date + ' à ' + b.time + '</strong><br>' +
+                '<span style="font-size:.85rem;color:var(--gray)">' + (svcNames[b.service] || b.service) + ' - ' + b.vehicle + '</span></div>' +
+                '<span class="bk-status ' + (b.status || 'confirmé') + '">' + (statusLabels[b.status] || 'Confirmé') + '</span></div>' +
+                '<div style="margin-top:6px;display:flex;gap:6px;font-size:.8rem">' +
+                '<span>📍 ' + (b.address || '') + '</span>' +
+                (b.provider ? '<span>🧽 ' + b.provider + '</span>' : '') +
+                '</div></div>';
+        }
     }
-    var html = '';
-    for (var i = myBookings.length - 1; i >= 0; i--) {
-        var b = myBookings[i];
-        var svcNames = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
-        html += '<div class="msg-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
-            '<div><strong>' + b.date + ' à ' + b.time + '</strong><br><span style="font-size:.85rem;color:var(--gray)">' +
-            (svcNames[b.service] || b.service) + ' - ' + b.vehicle + '</span></div>' +
-            '<span class="bk-status ' + (b.status || 'confirmed') + '">' + (b.status || 'Confirmé') + '</span></div>';
+
+    /* Historique complet */
+    var completeList = myBookings.filter(function (b) { return b.status === 'terminé' || b.status === 'annulé'; });
+    if (completeList.length) {
+        html += '<h4 style="margin:15px 0 10px">📜 Historique complet (' + completeList.length + ')</h4>';
+        for (var j = completeList.length - 1; j >= 0; j--) {
+            var bb = completeList[j];
+            var price = ({ simple: 1000, complet: 2500, premium: 4000 }[bb.service] || 0);
+            html += '<div class="msg-card" style="padding:10px;margin-bottom:6px;font-size:.9rem">' +
+                '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px">' +
+                '<span><strong>' + bb.date + '</strong> ' + bb.time + '</span>' +
+                '<span>' + (svcNames[bb.service] || bb.service) + '</span>' +
+                '<span>' + bb.vehicle + '</span>' +
+                '<span class="bk-status ' + (bb.status || 'terminé') + '" style="font-size:.75rem">' + (statusLabels[bb.status] || 'Terminé') + '</span>' +
+                '<span>' + price.toLocaleString() + ' F</span></div></div>';
+        }
     }
+
+    /* Bouton télécharger relevé */
+    if (myBookings.length) {
+        html += '<div style="margin-top:15px;text-align:center">' +
+            '<button class="btn btn-outline" onclick="downloadClientHistory(\'' + phone + '\')" style="font-size:.85rem">📥 Télécharger mon relevé (CSV)</button></div>';
+    }
+
     hist.innerHTML = html;
+}
+
+function downloadClientHistory(phone) {
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var myBookings = bookings.filter(function (b) { return b.phone === phone; });
+    if (!myBookings.length) { alert('Aucune donnée.'); return; }
+    var svcNames = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
+    var rows = [['Date','Heure','Service','Véhicule','Adresse','Statut','Prix (FCFA)']];
+    myBookings.forEach(function (b) {
+        var price = ({ simple: 1000, complet: 2500, premium: 4000 }[b.service] || 0);
+        rows.push([b.date, b.time, svcNames[b.service] || b.service, b.vehicle, b.address, b.status || 'confirmé', price]);
+    });
+    var tsv = rows.map(function (r) { return r.join('\t'); }).join('\n');
+    var bom = '\uFEFF';
+    var blob = new Blob([bom + tsv], { type: 'text/tab-separated-values;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ecowash_mes_lavages_' + new Date().toISOString().split('T')[0] + '.tsv';
+    a.click();
+    URL.revokeObjectURL(a.href);
 }
 
 function getBadges(numBookings) {

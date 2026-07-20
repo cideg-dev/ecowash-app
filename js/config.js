@@ -1,5 +1,5 @@
 var CONFIG = {
-    version: '2.0.0',
+    version: '2.1.0',
     business: {
         name: 'EcoWash',
         slogan: 'La révolution du lavage auto sans eau en Afrique',
@@ -16,6 +16,16 @@ var CONFIG = {
     email: {
         service: 'formspree',
         endpoint: 'https://formspree.io/f/xxxxxxxx'
+    },
+    sms: {
+        api: 'https://api.sms.africa/v1/messages',
+        apiKey: '',
+        sender: 'EcoWash'
+    },
+    cloud: {
+        syncUrl: '',
+        syncKey: '',
+        autoSync: false
     },
     admin: {
         name: 'Martial DEV',

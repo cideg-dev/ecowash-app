@@ -126,7 +126,7 @@
 
     <div class="container hidden" id="admin-screen">
         <div class="admin-header">
-            <h1>Tableau de bord EcoWash <span id="admin-version" style="font-size:.7rem;color:var(--gray);font-weight:400">v2.0.0</span></h1>
+            <h1>Tableau de bord EcoWash <span id="admin-version" style="font-size:.7rem;color:var(--gray);font-weight:400">v2.1.0</span></h1>
             <div style="display:flex;gap:8px;align-items:center">
                 <button onclick="toggleAdminTheme()" id="admin-theme-btn" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem" title="Mode sombre">&#127769;</button>
                 <button onclick="logout()" class="logout-btn">Déconnexion</button>
@@ -320,68 +320,241 @@
 
         function renderBookings(list) {
             var el = document.getElementById('tab-bookings');
+            var serviceNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+            /* Filtres */
+            var filterHtml = '<div id="bk-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px;padding:12px;background:var(--white);border-radius:8px;border:1px solid var(--border)">' +
+                '<select id="filter-status" style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:var(--white);color:var(--text)">' +
+                '<option value="">Tous statuts</option><option value="confirmé">Confirmé</option><option value="en_cours">En cours</option><option value="terminé">Terminé</option><option value="annulé">Annulé</option></select>' +
+                '<select id="filter-payment" style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:var(--white);color:var(--text)">' +
+                '<option value="">Tous paiements</option><option value="Orange Money">Orange Money</option><option value="MTN Mobile Money">MTN</option><option value="Moov Money">Moov</option><option value="Wave">Wave</option><option value="Espèces">Espèces</option></select>' +
+                '<input type="date" id="filter-date-from" style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:var(--white);color:var(--text)">' +
+                '<span style="align-self:center;color:var(--gray)">→</span>' +
+                '<input type="date" id="filter-date-to" style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:var(--white);color:var(--text)">' +
+                '<input type="text" id="filter-client" placeholder="Nom client..." style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:.85rem;background:var(--white);color:var(--text);width:150px">' +
+                '<button class="bk-status-btn" onclick="applyFilters()" style="background:var(--primary);color:white;border:none">🔍 Filtrer</button>' +
+                '<button class="bk-status-btn" onclick="resetFilters()" style="background:var(--gray);color:white;border:none">✕ Réinitialiser</button>' +
+                '<span style="margin-left:auto;align-self:center;font-size:.85rem;color:var(--gray)" id="bk-count-display"></span></div>';
+            el.innerHTML = filterHtml;
+
             if (list.length === 0) {
-                el.innerHTML = '<div class="empty-msg">Aucun rendez-vous pour le moment.</div>';
+                el.innerHTML += '<div class="empty-msg">Aucun rendez-vous.</div>';
                 return;
             }
+            /* Appliquer les filtres sauvegardés */
+            var savedStatus = localStorage.getItem('ecowash_filter_status') || '';
+            var savedPayment = localStorage.getItem('ecowash_filter_payment') || '';
+            var savedFrom = localStorage.getItem('ecowash_filter_from') || '';
+            var savedTo = localStorage.getItem('ecowash_filter_to') || '';
+            var savedClient = localStorage.getItem('ecowash_filter_client') || '';
+
+            var applyFn = function (l) {
+                var filtered = l.slice();
+                if (savedStatus) filtered = filtered.filter(function (x) { return x.status === savedStatus; });
+                if (savedPayment) filtered = filtered.filter(function (x) { return x.payment === savedPayment; });
+                if (savedFrom) filtered = filtered.filter(function (x) { return x.date >= savedFrom; });
+                if (savedTo) filtered = filtered.filter(function (x) { return x.date <= savedTo; });
+                if (savedClient) filtered = filtered.filter(function (x) { return (x.name || '').toLowerCase().indexOf(savedClient.toLowerCase()) !== -1; });
+                return filtered;
+            };
+            window._bkFiltered = applyFn(list);
+
             var html = '';
-            for (var i = list.length - 1; i >= 0; i--) {
-                var b = list[i];
+            var flist = window._bkFiltered;
+            document.getElementById('bk-count-display').textContent = flist.length + ' / ' + list.length + ' réservation(s)';
+
+            var promoBtnHtml = '<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">';
+            promoBtnHtml += '<button class="bk-status-btn" onclick="exportFilteredBookings()" style="background:#27ae60;color:white;border:none">📥 Exporter filtrés</button>';
+            promoBtnHtml += '<button class="bk-status-btn" onclick="printBookings()" style="background:#8e44ad;color:white;border:none">🖨️ Imprimer</button></div>';
+
+            for (var i = 0; i < flist.length; i++) {
+                var displayIdx = flist.length - 1 - i;
+                var b = flist[i];
                 var statuses = ['confirmé', 'en_cours', 'terminé', 'annulé'];
                 var statusLabels = { confirmé: 'Confirmé', en_cours: 'En cours', terminé: 'Terminé', annulé: 'Annulé' };
                 var currentStatus = b.status || 'confirmé';
-                var serviceNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
-                html += '<div class="msg-card"><h3>' + esc(b.name) + ' <span class="bk-status ' + currentStatus + '">' + (statusLabels[currentStatus] || 'Confirmé') + '</span></h3>' +
+                var noteKey = 'ecowash_note_' + b.id;
+                var noteText = b.adminNote || localStorage.getItem(noteKey) || '';
+                html += promoBtnHtml; promoBtnHtml = '';
+                html += '<div class="msg-card">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+                    '<h3>' + esc(b.name) + ' <span class="bk-status ' + currentStatus + '">' + (statusLabels[currentStatus] || 'Confirmé') + '</span></h3>' +
+                    '<div style="display:flex;gap:4px">' +
+                    '<button onclick="showBookingQR(\'' + b.id + '\')" style="background:none;border:none;cursor:pointer;font-size:1.1rem" title="QR Code check-in">📱</button>' +
+                    '</div></div>' +
                     '<div class="meta"><span>&#9742; ' + esc(b.phone) + '</span>' +
                     '<span>&#128205; ' + esc(b.address) + '</span></div>' +
                     '<div class="meta"><span>&#128663; ' + esc(b.vehicle) + '</span>' +
                     '<span>&#128737; ' + (serviceNames[b.service] || b.service) + '</span></div>' +
-                    '<div class="meta" id="bk-meta-' + i + '"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
-                    '<span>&#128176; ' + esc(b.payment) + '</span></div>' +
-                    (b.notes ? '<p>Note: ' + esc(b.notes) + '</p>' : '') +
+                    '<div class="meta"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
+                    '<span>&#128176; ' + esc(b.payment) + (b.price ? ' - ' + b.price + ' F' : '') + '</span></div>' +
+                    '<div class="meta" style="font-size:.8rem;color:var(--gray)"><span>ID: ' + esc(b.id) + '</span></div>' +
+                    (b.notes ? '<p style="font-size:.85rem;margin-top:4px">Client: ' + esc(b.notes) + '</p>' : '') +
                     (b.frequency && b.frequency !== 'une_fois' ? '<p style="font-size:.8rem;color:var(--gray)">&#128260; Récurrent: ' + b.frequency.replace('_',' ') + '</p>' : '') +
-                    '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
+                    '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' +
                     statuses.map(function (s) {
                         var act = s === currentStatus ? ' style="background:var(--primary);color:white;border-color:var(--primary)"' : '';
-                        return '<button class="bk-status-btn" data-idx="' + i + '" data-status="' + s + '"' + act + '>' + (statusLabels[s] || s) + '</button>';
+                        return '<button class="bk-status-btn" data-id="' + b.id + '" data-status="' + s + '"' + act + '>' + (statusLabels[s] || s) + '</button>';
                     }).join('') +
-                    '<button class="bk-status-btn" onclick="editBooking(' + i + ')" style="background:#3498db;color:white;border:none">✏️ Modifier</button>' +
-                    '<button class="bk-status-btn" onclick="deleteItem(\'bookings\',' + i + ')" style="background:#e74c3c;color:white;border:none">🗑 Supprimer</button>' +
+                    '<button class="bk-status-btn" onclick="editBookingById(\'' + b.id + '\')" style="background:#3498db;color:white;border:none">✏️</button>' +
+                    '<button class="bk-status-btn" onclick="deleteBookingById(\'' + b.id + '\')" style="background:#e74c3c;color:white;border:none">🗑</button>' +
                     '</div>' +
-                    '<div style="margin-top:8px;font-size:.8rem">' +
-                    '<label>Prestataire: <select class="provider-select" data-idx="' + i + '" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:.8rem">' +
+                    /* Prestataire */
+                    '<div style="margin-top:8px;font-size:.8rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+                    '<label>Prestataire: <select class="provider-select" data-id="' + b.id + '" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:.8rem">' +
                     '<option value="">Non assigné</option>' +
                     (typeof CONFIG !== 'undefined' && CONFIG.providers ? CONFIG.providers.filter(function(p){return p.active}).map(function(p){
                         var sel = b.provider === p.name ? ' selected' : '';
                         return '<option value="' + p.name + '"' + sel + '>' + p.name + '</option>';
                     }).join('') : '') +
-                    '</select></label></div></div>';
+                    '</select></label>' +
+                    /* Notes internes */
+                    '<label style="display:flex;align-items:center;gap:4px">📝 ' +
+                    '<input class="admin-note" data-id="' + b.id + '" type="text" placeholder="Note interne..." value="' + esc(noteText) + '" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:.8rem;width:200px;background:var(--white);color:var(--text)">' +
+                    '</label></div></div>';
             }
-            el.innerHTML = html;
+            el.innerHTML += html;
 
-            el.querySelectorAll('.bk-status-btn').forEach(function (btn) {
+            /* Event listeners - status */
+            el.querySelectorAll('.bk-status-btn[data-status]').forEach(function (btn) {
                 btn.addEventListener('click', function () {
-                    var idx = parseInt(this.getAttribute('data-idx'));
+                    var id = this.getAttribute('data-id');
                     var newStatus = this.getAttribute('data-status');
                     var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
-                    var target = allBookings[allBookings.length - 1 - idx];
+                    var target = null;
+                    allBookings.some(function (b) { if (b.id === id) { target = b; return true; } });
+                    if (!target) return;
                     target.status = newStatus;
                     localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
                     logActivity('Statut changé : ' + (target.name || '') + ' → ' + newStatus);
                     renderBookings(JSON.parse(localStorage.getItem('ecowash_bookings') || '[]'));
                 });
             });
+            /* Provider */
             el.querySelectorAll('.provider-select').forEach(function (sel) {
                 sel.addEventListener('change', function () {
-                    var idx = parseInt(this.getAttribute('data-idx'));
+                    var id = this.getAttribute('data-id');
                     var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
-                    var target = allBookings[allBookings.length - 1 - idx];
+                    var target = null;
+                    allBookings.some(function (b) { if (b.id === id) { target = b; return true; } });
+                    if (!target) return;
                     target.provider = this.value;
                     localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
                     logActivity('Prestataire assigné : ' + (target.name || '') + ' → ' + (this.value || 'aucun'));
                     if (typeof showToast === 'function') showToast('Prestataire mis à jour', 'success');
                 });
             });
+            /* Notes internes */
+            el.querySelectorAll('.admin-note').forEach(function (inp) {
+                inp.addEventListener('change', function () {
+                    var id = this.getAttribute('data-id');
+                    var val = this.value.trim();
+                    var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                    allBookings.forEach(function (b) {
+                        if (b.id === id) { b.adminNote = val; }
+                    });
+                    localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
+                    localStorage.setItem('ecowash_note_' + id, val);
+                    logActivity('Note interne mise à jour pour ' + id);
+                    if (typeof showToast === 'function') showToast('📝 Note enregistrée', 'success');
+                });
+            });
+
+            /* Restaurer les valeurs des filtres */
+            setTimeout(function () {
+                var fs = document.getElementById('filter-status'); if (fs) fs.value = savedStatus;
+                var fp = document.getElementById('filter-payment'); if (fp) fp.value = savedPayment;
+                var ff = document.getElementById('filter-date-from'); if (ff) ff.value = savedFrom;
+                var ft = document.getElementById('filter-date-to'); if (ft) ft.value = savedTo;
+                var fc = document.getElementById('filter-client'); if (fc) fc.value = savedClient;
+            }, 50);
+        }
+
+        function applyFilters() {
+            ['filter-status','filter-payment','filter-date-from','filter-date-to','filter-client'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) localStorage.setItem('ecowash_' + id.replace('filter-', 'filter_'), el.value);
+            });
+            var list = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            renderBookings(list);
+            logActivity('Filtres appliqués');
+        }
+        function resetFilters() {
+            ['filter-status','filter-payment','filter-date-from','filter-date-to','filter-client'].forEach(function (id) {
+                localStorage.removeItem('ecowash_' + id.replace('filter-', 'filter_'));
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            var list = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            renderBookings(list);
+            logActivity('Filtres réinitialisés');
+        }
+        function editBookingById(id) {
+            var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var b = null;
+            allBookings.some(function (x) { if (x.id === id) { b = x; return true; } });
+            if (!b) return;
+            var newDate = prompt('Nouvelle date (AAAA-MM-JJ) :', b.date);
+            if (!newDate) return;
+            var newTime = prompt('Nouvel horaire (HH:MM) :', b.time);
+            if (!newTime) return;
+            b.date = newDate;
+            b.time = newTime;
+            localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
+            renderBookings(allBookings);
+            logActivity('Rendez-vous modifié : ' + b.name + ' → ' + newDate + ' ' + newTime);
+            showToast('✅ Rendez-vous modifié', 'success');
+        }
+        function deleteBookingById(id) {
+            if (!confirm('Supprimer cette réservation ?')) return;
+            var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            allBookings = allBookings.filter(function (b) { return b.id !== id; });
+            localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
+            renderBookings(allBookings);
+            logActivity('Réservation supprimée : ' + id);
+            showToast('✅ Réservation supprimée', 'success');
+        }
+        function showBookingQR(id) {
+            var overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+            overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+            var box = document.createElement('div');
+            box.style.cssText = 'background:var(--card-bg);border-radius:16px;padding:30px;max-width:360px;width:100%;text-align:center;animation:popIn .3s ease';
+            var url = window.location.origin + '/?checkin=' + id;
+            box.innerHTML = '<h3 style="margin-bottom:10px">📱 Check-in client</h3>' +
+                '<p style="font-size:.85rem;color:var(--gray);margin-bottom:15px">Scannez ce QR code pour confirmer la présence du client</p>' +
+                '<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(url) + '" alt="QR Code" style="width:220px;height:220px;border-radius:8px;margin-bottom:15px">' +
+                '<p style="font-size:.85rem;word-break:break-all;color:var(--gray)">' + url + '</p>' +
+                '<button onclick="this.closest(\'div\').closest(\'div\').remove()" style="margin-top:15px;padding:10px 30px;background:var(--primary);color:white;border:none;border-radius:6px;cursor:pointer">Fermer</button>';
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        }
+        function exportFilteredBookings() {
+            var list = window._bkFiltered || [];
+            if (!list.length) { alert('Aucune réservation à exporter.'); return; }
+            var rows = [['ID','Nom','Téléphone','Adresse','Véhicule','Service','Date','Heure','Paiement','Prix','Statut','Fréquence','Prestataire','Note']];
+            var providerMap = {};
+            if (typeof CONFIG !== 'undefined' && CONFIG.providers) {
+                CONFIG.providers.forEach(function (p) { providerMap[p.name] = p.name; });
+            }
+            list.forEach(function (b) {
+                rows.push([b.id, b.name, b.phone, b.address, b.vehicle, b.service, b.date, b.time, b.payment, b.price||'', b.status||'', b.frequency||'une_fois', b.provider||'', (b.adminNote||'')]);
+            });
+            downloadTSV(rows, 'ecowash_bookings_filtrees_' + new Date().toISOString().split('T')[0] + '.tsv');
+            showToast('📥 Export terminé', 'success');
+        }
+        function printBookings() {
+            var list = window._bkFiltered || JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var w = window.open('', '_blank');
+            var rows = '<table border="1" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
+                '<thead><tr style="background:#2ecc71;color:white"><th>Client</th><th>Téléphone</th><th>Service</th><th>Date</th><th>Heure</th><th>Prix</th><th>Statut</th></tr></thead><tbody>';
+            list.forEach(function (b) {
+                var svc = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+                rows += '<tr><td>' + b.name + '</td><td>' + b.phone + '</td><td>' + (svc[b.service] || b.service) + '</td><td>' + b.date + '</td><td>' + b.time + '</td><td>' + (b.price||'') + '</td><td>' + (b.status||'confirmé') + '</td></tr>';
+            });
+            rows += '</tbody></table>';
+            w.document.write('<html><head><title>EcoWash - Liste réservations</title></head><body style="padding:20px"><h2 style="color:#2c3e50">EcoWash - Liste des réservations</h2><p>' + new Date().toLocaleDateString('fr-FR') + '</p>' + rows + '<p style="margin-top:20px;color:#95a5a6;font-size:11px">Généré par EcoWash Admin</p></body></html>');
+            w.document.close();
+            w.print();
         }
 
         function renderReviews(list) {
@@ -1162,7 +1335,7 @@
             window.open(url, '_blank');
             logActivity('Rappel WhatsApp (n°' + (numIndex != null ? numIndex + 1 : 1) + ') pour ' + booking.name);
         }
-        /* WhatsApp buttons in booking cards - one per number */
+        /* WhatsApp buttons in booking cards */
         (function patchBookingsRender() {
             var orig = window.renderBookings;
             if (orig) {
@@ -1170,9 +1343,14 @@
                     orig();
                     var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
                     var nums = getWhatsAppNumbers();
-                    document.querySelectorAll('#tab-bookings .msg-card').forEach(function (card, idx) {
+                    document.querySelectorAll('#tab-bookings .msg-card').forEach(function (card) {
                         var btnGroup = card.querySelector('div[style*="margin-top:10px"]');
                         if (!btnGroup) return;
+                        var idEl = card.querySelector('[data-id]');
+                        var bookingId = idEl ? idEl.getAttribute('data-id') : null;
+                        var booking = null;
+                        allBookings.some(function (b) { if (b.id === bookingId) { booking = b; return true; } });
+                        if (!booking) return;
                         nums.forEach(function (num, ni) {
                             var wpBtn = document.createElement('button');
                             wpBtn.innerHTML = '📲' + (ni + 1);
@@ -1180,12 +1358,165 @@
                             wpBtn.style.cssText = 'background:#25D366;color:white;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;font-size:.75rem;margin-right:3px';
                             wpBtn.onclick = function (e) {
                                 e.stopPropagation();
-                                var realIdx = allBookings.length - 1 - idx;
-                                sendBookingWhatsApp(allBookings[realIdx], ni);
+                                sendBookingWhatsApp(booking, ni);
                             };
                             btnGroup.prepend(wpBtn);
                         });
                     });
+                };
+            }
+        })();
+
+        /* === SMS NOTIFICATIONS === */
+        function sendSMS(phone, message) {
+            var cfg = (typeof CONFIG !== 'undefined' && CONFIG.sms) ? CONFIG.sms : {};
+            if (!cfg.api || !cfg.apiKey) {
+                logActivity('SMS non envoyé (API non configurée) pour ' + phone);
+                showToast('⚙️ Configurez l\'API SMS dans config.js', 'warning');
+                return;
+            }
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', cfg.api, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + cfg.apiKey);
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    logActivity('SMS envoyé à ' + phone);
+                    showToast('✅ SMS envoyé', 'success');
+                } else {
+                    showToast('❌ Échec SMS: ' + xhr.statusText, 'error');
+                }
+            };
+            xhr.onerror = function () {
+                showToast('❌ Erreur réseau SMS', 'error');
+            };
+            xhr.send(JSON.stringify({
+                to: phone,
+                from: cfg.sender || 'EcoWash',
+                text: message
+            }));
+        }
+        function sendBookingSMS(booking) {
+            var msg = 'EcoWash - Rendez-vous confirmé le ' + (booking.date || '') + ' à ' + (booking.time || '') + '. Merci !';
+            sendSMS(booking.phone, msg);
+        }
+        (function patchBookingsSMSPost() {
+            var orig2 = window.renderBookings;
+            if (orig2) {
+                window.renderBookings = function () {
+                    orig2();
+                    var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                    document.querySelectorAll('#tab-bookings .msg-card').forEach(function (card) {
+                        var btnGroup = card.querySelector('div[style*="margin-top:10px"]');
+                        if (!btnGroup || card.querySelector('.bk-sms-btn')) return;
+                        var bookingId = card.querySelector('[data-id]')?.getAttribute('data-id');
+                        var booking = null;
+                        allBookings.some(function (b) { if (b.id === bookingId) { booking = b; return true; } });
+                        if (!booking) return;
+                        var smsBtn = document.createElement('button');
+                        smsBtn.className = 'bk-sms-btn';
+                        smsBtn.innerHTML = '💬';
+                        smsBtn.title = 'Envoyer SMS';
+                        smsBtn.style.cssText = 'background:#3498db;color:white;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;font-size:.75rem';
+                        smsBtn.onclick = function (e) { e.stopPropagation(); sendBookingSMS(booking); };
+                        btnGroup.prepend(smsBtn);
+                    });
+                };
+            }
+        })();
+
+        /* === CLOUD SYNC === */
+        function syncToCloud() {
+            var cfg = (typeof CONFIG !== 'undefined' && CONFIG.cloud) ? CONFIG.cloud : {};
+            if (!cfg.syncUrl) { showToast('⚙️ Configurez cloud.syncUrl dans config.js', 'warning'); return; }
+            var data = {};
+            ['ecowash_bookings','ecowash_messages','ecowash_reviews','ecowash_promos','ecowash_clients'].forEach(function (k) {
+                data[k] = JSON.parse(localStorage.getItem(k) || '[]');
+            });
+            data.ecowash_products_stock = JSON.parse(localStorage.getItem('ecowash_products_stock') || '{}');
+            data.config = typeof CONFIG !== 'undefined' ? CONFIG : {};
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', cfg.syncUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            if (cfg.syncKey) xhr.setRequestHeader('X-Sync-Key', cfg.syncKey);
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    localStorage.setItem('ecowash_last_sync', new Date().toISOString());
+                    logActivity('Synchronisation cloud réussie');
+                    showToast('✅ Données synchronisées', 'success');
+                } else { showToast('❌ Échec sync: ' + xhr.statusText, 'error'); }
+            };
+            xhr.onerror = function () { showToast('❌ Erreur réseau sync', 'error'); };
+            xhr.send(JSON.stringify(data));
+        }
+        function syncFromCloud() {
+            var cfg = (typeof CONFIG !== 'undefined' && CONFIG.cloud) ? CONFIG.cloud : {};
+            if (!cfg.syncUrl) { showToast('⚙️ Configurez cloud.syncUrl dans config.js', 'warning'); return; }
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', cfg.syncUrl + '?t=' + Date.now(), true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            if (cfg.syncKey) xhr.setRequestHeader('X-Sync-Key', cfg.syncKey);
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var remote = JSON.parse(xhr.responseText);
+                        Object.keys(remote).forEach(function (k) {
+                            if (k.startsWith('ecowash_') && remote[k]) localStorage.setItem(k, JSON.stringify(remote[k]));
+                        });
+                        localStorage.setItem('ecowash_last_sync', new Date().toISOString());
+                        loadData();
+                        logActivity('Restauration cloud réussie');
+                        showToast('✅ Données restaurées depuis le cloud', 'success');
+                    } catch (e) { showToast('❌ Données corrompues', 'error'); }
+                } else { showToast('❌ Échec restauration: ' + xhr.statusText, 'error'); }
+            };
+            xhr.onerror = function () { showToast('❌ Erreur réseau restauration', 'error'); };
+            xhr.send();
+        }
+
+        /* === AUTO-REFRESH DASHBOARD === */
+        var _refreshTimer = null;
+        function startAutoRefresh() {
+            if (_refreshTimer) clearInterval(_refreshTimer);
+            _refreshTimer = setInterval(function () {
+                var activeTab = document.querySelector('.tab.active');
+                var text = activeTab ? activeTab.textContent.toLowerCase() : '';
+                if (text.indexOf('messages') !== -1 || text.indexOf('rendez') !== -1) loadData();
+                if (text.indexOf('analytics') !== -1 && typeof renderAnalytics === 'function') renderAnalytics();
+                if (text.indexOf('prestataire') !== -1 && typeof renderProviderDashboard === 'function') renderProviderDashboard();
+            }, 30000);
+            logActivity('Auto-refresh activé (30s)');
+        }
+        (function patchLoginForRefresh() {
+            var origLogin = window.login;
+            if (origLogin) {
+                window.login = function () {
+                    var ret = origLogin();
+                    startAutoRefresh();
+                    return ret;
+                };
+            }
+        })();
+
+        /* === CLOUD BUTTONS IN EXPORT TAB === */
+        (function patchExportForCloud() {
+            var orig = window.loadData;
+            if (orig) {
+                window.loadData = function () {
+                    orig();
+                    var exportTab = document.getElementById('tab-export');
+                    if (!exportTab || exportTab.querySelector('.cloud-sync-btns')) return;
+                    var cloudDiv = document.createElement('div');
+                    cloudDiv.className = 'cloud-sync-btns';
+                    cloudDiv.innerHTML = '<hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">' +
+                        '<h4 style="margin-bottom:10px;font-size:.9rem;color:var(--gray)">☁️ Cloud Sync</h4>' +
+                        '<button class="btn" onclick="syncToCloud()" style="margin:5px">📤 Envoyer au cloud</button>' +
+                        '<button class="btn btn-outline" onclick="syncFromCloud()" style="margin:5px">📥 Restaurer du cloud</button>' +
+                        '<p style="font-size:.75rem;color:var(--gray);margin-top:8px" id="last-sync-display"></p>';
+                    exportTab.appendChild(cloudDiv);
+                    var lastSync = localStorage.getItem('ecowash_last_sync');
+                    var dsp = document.getElementById('last-sync-display');
+                    if (dsp && lastSync) dsp.textContent = 'Dernière sync: ' + new Date(lastSync).toLocaleString('fr-FR');
                 };
             }
         })();
