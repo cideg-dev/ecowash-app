@@ -14,12 +14,19 @@
     <meta property="og:image" content="https://cideg-dev.github.io/ecowash-app/images/icon-512.svg">
     <meta name="twitter:card" content="summary">
     <meta name="description" content="EcoWash - Lavage auto sans eau écologique et économique en Afrique. 0L d'eau, 10 min chrono, 1 000 F seulement.">
+    <meta name="keywords" content="lavage auto sans eau, éco lavage, nettoyage voiture écologique, Benin, Cotonou, Mobile Money">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://*.tile.openstreetmap.org https://api.qrserver.com https://formspree.io; img-src 'self' data: https:; connect-src 'self' https://formspree.io;">
     <link rel="canonical" href="https://cideg-dev.github.io/ecowash-app/">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/svg+xml" href="images/icon-192.svg">
     <link rel="apple-touch-icon" href="images/icon-512.svg">
+    <link rel="preload" href="css/style.css" as="style">
+    <link rel="preload" href="js/config.js" as="script">
+    <link rel="preload" href="js/main.js" as="script">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://api.qrserver.com">
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <title>EcoWash - Lavage Auto Sans Eau</title>
-    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script type="application/ld+json">
     {
@@ -711,6 +718,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/db.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/cart.js"></script>
     <script src="js/main.js"></script>

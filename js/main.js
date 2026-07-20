@@ -308,6 +308,14 @@ function initBooking() {
                 alert('Veuillez remplir tous les champs obligatoires.');
                 return;
             }
+            if (data.phone.length < 6) {
+                alert('Numéro de téléphone invalide.');
+                return;
+            }
+            if (data.name.length > 100 || data.address.length > 300) {
+                alert('Texte trop long.');
+                return;
+            }
             window._pendingBooking = data;
             if (data.payment !== 'Espèces') {
                 showPaymentModal(data);
@@ -321,6 +329,7 @@ function initBooking() {
         saveLocal('ecowash_bookings', data);
         localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
         scheduleBookingReminder(data);
+        sendBookingEmail(data);
 
         if (data.frequency && data.frequency !== 'une_fois') {
             generateRecurringBookings(data);
@@ -1239,6 +1248,32 @@ function scheduleBookingReminder(data) {
             payload: { id: data.id, name: data.name, service: data.service, date: data.date, time: data.time }
         });
     });
+}
+
+function sendBookingEmail(data) {
+    var endpoint = C.email?.endpoint;
+    if (!endpoint) return;
+    var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+    var payload = {
+        name: data.name,
+        phone: data.phone,
+        email: C.business?.email || '',
+        subject: 'Confirmation de réservation #' + data.id,
+        message: 'Bonjour ' + data.name + ',\n\nVotre réservation EcoWash est confirmée :\n\n' +
+            'Service : ' + (svcNames[data.service] || data.service) + '\n' +
+            'Date : ' + data.date + ' à ' + data.time + '\n' +
+            'Adresse : ' + data.address + '\n' +
+            'Véhicule : ' + data.vehicle + '\n' +
+            'Paiement : ' + data.payment + '\n' +
+            (data.transactionId ? 'Transaction : ' + data.transactionId + '\n' : '') +
+            '\nMerci de votre confiance !\nÉquipe EcoWash'
+    };
+    try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', endpoint, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify(payload));
+    } catch (e) {}
 }
 
 /* === ADMIN SOND === */

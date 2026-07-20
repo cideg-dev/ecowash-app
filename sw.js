@@ -8,6 +8,7 @@ const URLS = [
     'css/style.css',
     'js/main.js',
     'js/config.js',
+    'js/db.js',
     'js/i18n.js',
     'js/cart.js',
     'manifest.json',

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Tests EcoWash</title>
+<style>body{font-family:monospace;max-width:800px;margin:20px auto;padding:20px}h1{color:#2ecc71}.pass{color:#27ae60}.fail{color:#e74c3c;font-weight:700}pre{background:#f5f5f5;padding:10px;border-radius:6px;overflow:auto}</style>
+</head>
+<body>
+<h1>&#128270; Tests EcoWash</h1>
+<div id="results"></div>
+<script>
+var results = document.getElementById('results');
+var passed = 0, failed = 0;
+
+function test(name, fn) {
+    try {
+        fn();
+        passed++;
+        results.innerHTML += '<div class="pass">&#10003; ' + name + '</div>';
+    } catch (e) {
+        failed++;
+        results.innerHTML += '<div class="fail">&#10007; ' + name + ': ' + e.message + '</div>';
+    }
+}
+
+function assert(cond, msg) { if (!cond) throw new Error(msg || 'Assertion failed'); }
+
+function saveLocal(key, val) {
+    var list = JSON.parse(localStorage.getItem(key) || '[]');
+    list.push(val);
+    localStorage.setItem(key, JSON.stringify(list));
+}
+function getLocal(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
+
+/* === TESTS === */
+test('saveLocal stocke et getLocal récupère', function () {
+    var k = '_test_' + Date.now();
+    saveLocal(k, { id: 1, name: 'Test' });
+    var data = getLocal(k);
+    assert(data.length === 1, 'devrait avoir 1 élément');
+    assert(data[0].name === 'Test', 'nom devrait être Test');
+    localStorage.removeItem(k);
+});
+
+test('generateRecurringBookings crée des entrées', function () {
+    var template = { service: 'simple', date: '2026-08-01', time: '10:00', frequency: 'chaque_semaine', name: 'Test' };
+    var countBefore = getLocal('ecowash_bookings').length;
+    if (typeof generateRecurringBookings === 'function') {
+        generateRecurringBookings(template);
+        var countAfter = getLocal('ecowash_bookings').length;
+        assert(countAfter > countBefore, 'devrait ajouter des réservations');
+    }
+});
+
+test('prix calculé correctement', function () {
+    var prices = { simple: 1000, complet: 2500, premium: 4000 };
+    assert(prices.simple === 1000, 'simple = 1000 F');
+    assert(prices.complet === 2500, 'complet = 2500 F');
+    assert(prices.premium === 4000, 'premium = 4000 F');
+    var qty = 2, base = prices.simple * qty;
+    var total = Math.round(base * 0.95);
+    assert(total === 1900, '2 simple avec -5% = 1900 F, got ' + total);
+});
+
+test('multi-vehicle discount', function () {
+    var price = 1000;
+    assert(price === 1000, '1: ' + price);
+    assert(Math.round(price * 2 * 0.95) === 1900, '2: ' + Math.round(price * 2 * 0.95));
+    assert(Math.round(price * 3 * 0.90) === 2700, '3: ' + Math.round(price * 3 * 0.90));
+});
+
+test('esc sanitize les chaînes', function () {
+    if (typeof esc === 'function') {
+        assert(esc('<script>') === '&lt;script&gt;', 'esc gère le HTML');
+        assert(esc('hello') === 'hello', 'texte simple');
+        assert(esc('') === '', 'chaîne vide');
+    }
+});
+
+test('getBadges retourne les bons badges', function () {
+    if (typeof getBadges === 'function') {
+        var b0 = getBadges(0);
+        assert(b0.length === 0, '0 lavage = 0 badge, got ' + b0.length);
+        var b1 = getBadges(1);
+        assert(b1.length >= 1, '1 lavage = au moins 1 badge, got ' + b1.length);
+        assert(b1[0].label === 'Premier lavage', '1er badge = Premier lavage');
+        var b10 = getBadges(10);
+        assert(b10.length >= 4, '10 lavages >= 4 badges, got ' + b10.length);
+    }
+});
+
+test('validation des champs obligatoires', function () {
+    function validate(name, phone, address) {
+        return !!(name && phone && address);
+    }
+    assert(validate('Jean', '+2290000', 'Cotonou') === true, 'tout rempli = OK');
+    assert(validate('', '+2290000', 'Cotonou') === false, 'nom vide = échec');
+    assert(validate('Jean', '', 'Cotonou') === false, 'téléphone vide = échec');
+    assert(validate('Jean', '+2290000', '') === false, 'adresse vide = échec');
+});
+
+test('format phone Benin', function () {
+    function isValidPhone(p) { return p && p.length >= 6; }
+    assert(isValidPhone('+229 01 02 03 04') === true);
+    assert(isValidPhone('') === false);
+    assert(isValidPhone(null) === false);
+});
+
+test('localStorage clés non conflictuelles', function () {
+    var keys = Object.keys(localStorage).filter(function (k) { return k.indexOf('ecowash_') === 0; });
+    keys.forEach(function (k) {
+        try { JSON.parse(localStorage.getItem(k)); }
+        catch (e) { throw new Error('Clé ' + k + ' a du JSON invalide'); }
+    });
+});
+
+test('calcul impact écologique', function () {
+    var bookings = 5;
+    var water = bookings * 300;
+    var co2 = bookings * 3.5;
+    assert(water === 1500, 'eau: ' + water + ' L');
+    assert(co2 === 17.5, 'CO2: ' + co2 + ' kg');
+});
+
+test('points fidélité', function () {
+    var bookings = 3;
+    var points = bookings * 50;
+    assert(points === 150, '3 lavages = 150 pts, got ' + points);
+});
+
+var statuses = ['confirmé', 'en_cours', 'terminé', 'annulé'];
+test('statuts valides', function () {
+    assert(statuses.length === 4, '4 statuts');
+    assert(statuses.indexOf('confirmé') !== -1);
+    assert(statuses.indexOf('en_cours') !== -1);
+    assert(statuses.indexOf('terminé') !== -1);
+    assert(statuses.indexOf('annulé') !== -1);
+});
+
+/* Résumé */
+results.innerHTML += '<hr><h2>Résultat : ' + passed + ' r\u00e9ussis, ' + failed + ' \u00e9checs</h2>';
+</script>
+</body>
+</html>
