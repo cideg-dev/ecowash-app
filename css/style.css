@@ -717,3 +717,39 @@ footer {
 #tab-provider .msg-card { transition: all .3s; }
 #tab-provider .msg-card:hover { box-shadow: var(--shadow-lg); }
 .bk-status-btn:active { transform: scale(0.95); }
+
+/* === BOUTON VOCAL === */
+.voice-btn {
+    position: fixed; bottom: 150px; right: 20px; width: 50px; height: 50px;
+    background: #8e44ad; border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: var(--shadow-lg); z-index: 998;
+    color: white; font-size: 1.3rem; transition: all .3s;
+}
+.voice-btn:hover { transform: scale(1.1); }
+.voice-btn.listening { background: #e74c3c; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231,76,60,.5); } 100% { box-shadow: 0 0 0 15px rgba(231,76,60,0); } }
+
+/* === DÉFIS / CHALLENGES === */
+.challenges-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px; max-width: 900px; margin: 30px auto 0;
+}
+.challenge-card {
+    background: var(--card-bg); border-radius: var(--radius);
+    padding: 18px; box-shadow: var(--shadow); display: flex;
+    gap: 14px; align-items: flex-start; transition: all .3s;
+    border: 2px solid var(--border);
+}
+.challenge-card.done {
+    border-color: var(--primary); background: linear-gradient(135deg, var(--white), #f0faf0);
+}
+.challenge-card .ch-icon { font-size: 2rem; flex-shrink: 0; }
+.challenge-card .ch-info { flex: 1; }
+.ch-bar { height: 6px; background: var(--light); border-radius: 3px; margin: 8px 0; overflow: hidden; }
+.ch-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); border-radius: 3px; transition: width .5s ease; }
+.challenge-card.done .ch-bar-fill { background: linear-gradient(90deg, var(--primary-dark), #1a9e4e); }
+
+/* === PHOTO UPLOAD PRESTATAIRE === */
+.photo-upload-label:hover { background: var(--primary); color: white; }
+.photo-upload-label input[type="file"] { display: none; }

@@ -630,7 +630,15 @@
                         '<button class="bk-status-btn" style="background:#f39c12;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'confirmé\',this)">&#128073; Confirmé</button>' +
                         '<button class="bk-status-btn" style="background:#e67e22;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'en_cours\',this)">&#128668; En cours</button>' +
                         '<button class="bk-status-btn" style="background:#27ae60;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'terminé\',this)">&#10003; Terminé</button>' +
-                        '<button class="bk-status-btn" style="background:#e74c3c;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'annulé\',this)">&#10060; Annulé</button></div></div>';
+                        '<button class="bk-status-btn" style="background:#e74c3c;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'annulé\',this)">&#10060; Annulé</button></div>' +
+                        '<div style="margin-top:8px">' +
+                        '<label class="photo-upload-label" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--light);border-radius:6px;cursor:pointer;font-size:.8rem">' +
+                        '&#128247; Ajouter une photo' +
+                        '<input type="file" accept="image/*" style="display:none" onchange="providerUploadPhoto(this,' + i + ')">' +
+                        '</label>' +
+                        (b.photoBefore ? '<span style="font-size:.75rem;color:var(--gray);margin-left:8px">&#10003; Avant</span>' : '') +
+                        (b.photoAfter ? '<span style="font-size:.75rem;color:var(--gray);margin-left:4px">&#10003; Après</span>' : '') +
+                        '</div></div>';
                 });
                 list.innerHTML = html;
             }
@@ -658,6 +666,39 @@
             localStorage.setItem('ecowash_bookings', JSON.stringify(bookings));
             renderProviderDashboard();
             if (typeof showToast === 'function') showToast('Statut mis à jour : ' + status, 'success');
+        }
+
+        function providerUploadPhoto(input, idx) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) { alert('Image trop volumineuse (max 2 Mo).'); return; }
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                var today = new Date().toISOString().split('T')[0];
+                var todayBks = bookings.filter(function (b) { return b.date === today; });
+                var realIdx = bookings.indexOf(todayBks[idx]);
+                if (realIdx === -1) return;
+                if (!bookings[realIdx].photoBefore) {
+                    bookings[realIdx].photoBefore = ev.target.result;
+                } else {
+                    bookings[realIdx].photoAfter = ev.target.result;
+                }
+                localStorage.setItem('ecowash_bookings', JSON.stringify(bookings));
+
+                var photos = JSON.parse(localStorage.getItem('ecowash_gallery_photos') || '[]');
+                photos.push({
+                    before: bookings[realIdx].photoBefore,
+                    after: bookings[realIdx].photoAfter || ev.target.result,
+                    label: bookings[realIdx].vehicle + ' - ' + bookings[realIdx].name,
+                    date: new Date().toISOString()
+                });
+                localStorage.setItem('ecowash_gallery_photos', JSON.stringify(photos));
+
+                renderProviderDashboard();
+                if (typeof showToast === 'function') showToast('✅ Photo ajoutée', 'success');
+            };
+            reader.readAsDataURL(file);
         }
     </script>
 </body>

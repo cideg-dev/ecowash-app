@@ -47,7 +47,15 @@ var CONFIG = {
     },
     products: {
         shippingCost: 1500,
-        freeShippingAbove: 30000
+        freeShippingAbove: 30000,
+        items: [
+            { id: 'a1-conc', name: 'A1 - Concentré Liquide 1:200', price: 2000, stock: 50 },
+            { id: 'a2-poudre', name: 'A2 - Poudre Concentrée OPS', price: 1000, stock: 30 },
+            { id: 'b1-wax', name: 'B1 - Henkseal Wash Wax', price: 3000, stock: 40 },
+            { id: 'b2-restauration', name: 'B2 - Restauration Couleur', price: 2000, stock: 20 },
+            { id: 'd1-degreasant', name: 'D1 - Aoifa Láidir Dégraissant', price: 3000, stock: 25 },
+            { id: 'd2-degreaser', name: 'D2 - DUBI Degreaser Concentrate', price: 2000, stock: 35 }
+        ]
     },
     providers: [
         { name: 'Jean', phone: '+229 01 02 03 04', active: true },

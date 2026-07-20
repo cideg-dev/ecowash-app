@@ -201,6 +201,19 @@ function initGallery() {
         html += '<div class="gallery-card fade-in" style="background:' + item.bg + ';display:flex;align-items:center;justify-content:center;color:white;font-size:2rem;font-weight:700">' +
             '<div class="gallery-label">' + item.label + '</div></div>';
     });
+
+    var uploaded = JSON.parse(localStorage.getItem('ecowash_gallery_photos') || '[]');
+    uploaded.forEach(function (photo) {
+        if (photo.before) {
+            html += '<div class="gallery-card fade-in" style="background-image:url(\'' + photo.before + '\');background-size:cover;background-position:center;position:relative">' +
+                '<div class="gallery-label" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:white;padding:20px 10px 8px;font-size:.75rem">Avant - ' + (photo.label || '') + '</div></div>';
+        }
+        if (photo.after) {
+            html += '<div class="gallery-card fade-in" style="background-image:url(\'' + photo.after + '\');background-size:cover;background-position:center;position:relative">' +
+                '<div class="gallery-label" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:white;padding:20px 10px 8px;font-size:.75rem;background:linear-gradient(transparent,rgba(46,204,113,.8))">Après - ' + (photo.label || '') + '</div></div>';
+        }
+    });
+
     container.innerHTML = html;
 }
 
@@ -2173,7 +2186,7 @@ function initAdminProducts() {
     prodContent.className = 'tab-content';
     prodContent.id = 'tab-products';
     prodContent.innerHTML =
-        '<h3 style="margin-bottom:15px">Gestion des codes promo</h3>' +
+        '<h3 style="margin-bottom:15px">Codes promo</h3>' +
         '<div id="promo-admin-list"></div>' +
         '<div style="margin-top:20px;padding:20px;background:var(--white);border-radius:8px;box-shadow:var(--shadow)">' +
         '<h4 style="margin-bottom:10px">Ajouter un code promo</h4>' +
@@ -2182,7 +2195,9 @@ function initAdminProducts() {
         '<select id="new-promo-type" style="padding:10px;border:1px solid #ddd;border-radius:6px"><option value="percent">%</option><option value="fixed">Montant fixe</option></select>' +
         '<input type="number" id="new-promo-value" placeholder="Valeur" style="padding:10px;border:1px solid #ddd;border-radius:6px;width:80px">' +
         '</div>' +
-        '<button class="btn" style="margin-top:10px" onclick="addPromo()">Ajouter</button></div>';
+        '<button class="btn" style="margin-top:10px" onclick="addPromo()">Ajouter</button></div>' +
+        '<h3 style="margin:25px 0 15px">Gestion des stocks</h3>' +
+        '<div id="stock-admin-list"></div>';
 
     var exportTab = document.createElement('button');
     exportTab.className = 'tab';
@@ -2203,6 +2218,41 @@ function initAdminProducts() {
     if (analyticsContent) analyticsContent.parentElement.insertBefore(prodContent, analyticsContent.nextSibling);
     prodContent.parentElement.appendChild(exportContent);
     exportContent.parentElement.appendChild(rendContent);
+
+    renderStockList();
+}
+
+function renderStockList() {
+    var el = document.getElementById('stock-admin-list');
+    if (!el) return;
+    var items = (typeof CONFIG !== 'undefined' && CONFIG.products?.items) ? CONFIG.products.items : [];
+    var stocks = JSON.parse(localStorage.getItem('ecowash_product_stocks') || '{}');
+    if (!items.length) { el.innerHTML = '<div class="empty-msg">Aucun produit configuré</div>'; return; }
+    var html = '<div style="display:grid;gap:8px">';
+    items.forEach(function (item) {
+        var stock = stocks[item.id] !== undefined ? stocks[item.id] : item.stock;
+        var low = stock <= 5;
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--white);padding:10px 14px;border-radius:8px;box-shadow:var(--shadow)">' +
+            '<span><strong>' + item.name + '</strong> <span style="color:var(--gray);font-size:.85rem">' + item.price.toLocaleString() + ' F</span></span>' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="font-weight:600;color:' + (low ? '#e74c3c' : 'var(--primary-dark)') + '">' + stock + ' unités</span>' +
+            '<input type="number" class="stock-qty" data-id="' + item.id + '" value="' + stock + '" min="0" style="width:60px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:.85rem">' +
+            '<button class="bk-status-btn" style="background:var(--primary);color:white;border:none;padding:4px 10px" onclick="updateStock(\'' + item.id + '\')">Mettre à jour</button></div></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function updateStock(id) {
+    var input = document.querySelector('.stock-qty[data-id="' + id + '"]');
+    if (!input) return;
+    var qty = parseInt(input.value);
+    if (isNaN(qty) || qty < 0) { showToast('Quantité invalide', 'error'); return; }
+    var stocks = JSON.parse(localStorage.getItem('ecowash_product_stocks') || '{}');
+    stocks[id] = qty;
+    localStorage.setItem('ecowash_product_stocks', JSON.stringify(stocks));
+    showToast('Stock mis à jour : ' + qty + ' unités', 'success');
+    renderStockList();
 }
 
 function addPromo() {
@@ -2742,5 +2792,148 @@ function initOfflineSync() {
 /* === MISE À JOUR DOMContentLoaded === */
 document.addEventListener('DOMContentLoaded', function () {
     initOfflineSync();
+    initChallenges();
+    initVoiceAssistant();
+    initProductStockDisplay();
 });
+
+/* === DÉFIS & GAMIFICATION === */
+function initChallenges() {
+    var grid = document.getElementById('challenges-grid');
+    if (!grid) return;
+
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var myPhone = localStorage.getItem('ecowash_client_phone');
+    var myBookings = myPhone ? bookings.filter(function (b) { return b.phone === myPhone; }) : bookings;
+    var count = myBookings.length;
+    var totalSpent = myBookings.reduce(function (sum, b) { return sum + ({ simple: 1000, complet: 2500, premium: 4000 }[b.service] || 0); }, 0);
+
+    var challenges = [
+        { id: 'c1', icon: '\u{1F4A6}', title: 'Premier lavage', desc: 'Effectuez votre premier lavage', goal: 1, type: 'bookings', reward: '50 pts' },
+        { id: 'c2', icon: '\u{1F31F}', title: 'Régulier', desc: '3 lavages chez EcoWash', goal: 3, type: 'bookings', reward: '100 pts' },
+        { id: 'c3', icon: '\u{1F3C6}', title: 'Expert', desc: '5 lavages accomplis', goal: 5, type: 'bookings', reward: '200 pts' },
+        { id: 'c4', icon: '\u{1F451}', title: 'VIP', desc: '10 lavages en fidélité', goal: 10, type: 'bookings', reward: '500 pts' },
+        { id: 'c5', icon: '\u{1F4B0}', title: 'Économe', desc: 'Dépensez 50 000 F cumulés', goal: 50000, type: 'spent', reward: '-15% sur prochain' },
+        { id: 'c6', icon: '\u{1F504}', title: 'Fidèle', desc: 'Utilisez EcoWash pendant 3 mois', goal: 3, type: 'months', reward: 'Lavage Premium offert' }
+    ];
+
+    var completedChallenges = JSON.parse(localStorage.getItem('ecowash_completed_challenges') || '[]');
+    var html = '';
+    challenges.forEach(function (ch) {
+        var progress = 0;
+        if (ch.type === 'bookings') progress = Math.min(100, (count / ch.goal) * 100);
+        else if (ch.type === 'spent') progress = Math.min(100, (totalSpent / ch.goal) * 100);
+        else if (ch.type === 'months') progress = Math.min(100, (count / ch.goal) * 100);
+
+        var done = completedChallenges.indexOf(ch.id) !== -1 || progress >= 100;
+        var cls = done ? 'challenge-card done' : 'challenge-card';
+        html += '<div class="' + cls + '">' +
+            '<div class="ch-icon">' + ch.icon + '</div>' +
+            '<div class="ch-info"><strong>' + ch.title + '</strong>' +
+            '<p style="font-size:.8rem;color:var(--gray);margin:4px 0">' + ch.desc + '</p>' +
+            '<div class="ch-bar"><div class="ch-bar-fill" style="width:' + Math.min(100, progress) + '%"></div></div>' +
+            '<div style="font-size:.75rem;color:var(--gray);display:flex;justify-content:space-between">' +
+            '<span>' + Math.round(progress) + '%</span>' +
+            '<span>' + (done ? '\u2705 ' + ch.reward : ch.reward) + '</span></div></div></div>';
+
+        if (done && completedChallenges.indexOf(ch.id) === -1) {
+            completedChallenges.push(ch.id);
+            var points = ch.id === 'c1' ? 50 : ch.id === 'c2' ? 100 : ch.id === 'c3' ? 200 : ch.id === 'c4' ? 500 : 0;
+            if (points > 0) {
+                var extra = parseInt(localStorage.getItem('ecowash_extra_points') || '0');
+                localStorage.setItem('ecowash_extra_points', extra + points);
+            }
+        }
+    });
+    localStorage.setItem('ecowash_completed_challenges', JSON.stringify(completedChallenges));
+    grid.innerHTML = html;
+}
+
+/* === ASSISTANT VOCAL === */
+function initVoiceAssistant() {
+    var btn = document.getElementById('voice-btn');
+    if (!btn) return;
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    var listening = false;
+    btn.addEventListener('click', function () {
+        if (listening) { recognition.stop(); return; }
+        btn.style.background = '#e74c3c';
+        btn.textContent = '\u{1F3A4}';
+        listening = true;
+        try { recognition.start(); } catch (e) {}
+    });
+
+    recognition.onresult = function (e) {
+        var transcript = e.results[0][0].transcript.toLowerCase();
+        btn.style.background = '';
+        btn.textContent = '\u{1F3A4}';
+        listening = false;
+
+        if (transcript.indexOf('réserver') !== -1 || transcript.indexOf('rendez-vous') !== -1 || transcript.indexOf('booking') !== -1) {
+            document.getElementById('rendezvous')?.scrollIntoView({ behavior: 'smooth' });
+            showToast('🗣️ Redirection vers le formulaire de réservation', 'info');
+        } else if (transcript.indexOf('catalogue') !== -1 || transcript.indexOf('produit') !== -1 || transcript.indexOf('achat') !== -1) {
+            window.location.href = 'produits.html';
+        } else if (transcript.indexOf('contact') !== -1 || transcript.indexOf('téléphone') !== -1 || transcript.indexOf('appel') !== -1) {
+            document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+            showToast('🗣️ Section contact', 'info');
+        } else if (transcript.indexOf('tarif') !== -1 || transcript.indexOf('prix') !== -1 || transcript.indexOf('prix') !== -1) {
+            document.getElementById('tarifs')?.scrollIntoView({ behavior: 'smooth' });
+            showToast('🗣️ Affichage des tarifs', 'info');
+        } else if (transcript.indexOf('compte') !== -1 || transcript.indexOf('dashboard') !== -1 || transcript.indexOf('profil') !== -1) {
+            openClientDashboard();
+        } else {
+            showToast('🗣️ Commande non reconnue : "' + transcript + '"', 'error');
+        }
+    };
+
+    recognition.onerror = function () {
+        btn.style.background = '';
+        btn.textContent = '\u{1F3A4}';
+        listening = false;
+    };
+
+    recognition.onend = function () {
+        btn.style.background = '';
+        btn.textContent = '\u{1F3A4}';
+        listening = false;
+    };
+}
+
+/* === STOCK SUR PAGE PRODUITS === */
+function initProductStockDisplay() {
+    if (!document.querySelector('.product-card')) return;
+    var stocks = JSON.parse(localStorage.getItem('ecowash_product_stocks') || '{}');
+    var configItems = (typeof CONFIG !== 'undefined' && CONFIG.products?.items) ? CONFIG.products.items : [];
+    configItems.forEach(function (item) {
+        var stock = stocks[item.id] !== undefined ? stocks[item.id] : item.stock;
+        var cards = document.querySelectorAll('.product-card');
+        cards.forEach(function (card) {
+            var code = card.querySelector('.p-code');
+            if (code && code.textContent.toLowerCase() === item.id.split('-')[0]) {
+                var footer = card.querySelector('.p-footer');
+                if (footer && stock !== undefined) {
+                    var badge = document.createElement('div');
+                    badge.style.cssText = 'font-size:.75rem;margin-top:6px;color:' + (stock <= 5 ? '#e74c3c' : 'var(--primary-dark)');
+                    badge.textContent = stock <= 0 ? 'Rupture de stock' : stock <= 5 ? 'Stock faible: ' + stock : 'En stock: ' + stock;
+                    footer.appendChild(badge);
+                    if (stock <= 0) {
+                        var btns = card.querySelectorAll('.add-to-cart-btn');
+                        btns.forEach(function (b) { b.disabled = true; b.textContent = 'Indisponible'; b.style.opacity = '0.5'; });
+                    }
+                }
+            }
+        });
+    });
+}
 
