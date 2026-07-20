@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initLoyalty();
     initPromo();
     initCookies();
+    initSteps();
+    initTrust();
+    initSavingsCalc();
+    initUrgenceTimer();
 });
 
 function initNav() {
@@ -1156,6 +1160,97 @@ function initProductSearch() {
     });
 }
 
+/* === COMMENT ÇA MARCHE === */
+function initSteps() {
+    var grid = document.getElementById('steps-grid');
+    if (!grid) return;
+    var steps = [
+        { num: 1, icon: '\u{1F4F1}', title: 'Vous réservez', desc: 'Choisissez votre date, heure et type de lavage en 30 secondes.' },
+        { num: 2, icon: '\u{1F697}', title: 'Nous venons à vous', desc: 'Un technicien EcoWash arrive avec tout le matériel nécessaire.' },
+        { num: 3, icon: '\u2728', title: 'Votre véhicule brille', desc: 'Lavage complet sans eau, sans traces, en 10 à 20 minutes.' }
+    ];
+    var html = '';
+    steps.forEach(function (s) {
+        html += '<div class="step-card fade-in"><div class="step-num">' + s.num + '</div>' +
+            '<div class="step-icon">' + s.icon + '</div><h3>' + s.title + '</h3><p>' + s.desc + '</p></div>';
+    });
+    grid.innerHTML = html;
+}
 
+/* === GARANTIE / CONFIANCE === */
+function initTrust() {
+    var grid = document.getElementById('trust-grid');
+    if (!grid) return;
+    var items = [
+        { icon: '\u{1F4B0}', title: 'Économique', desc: 'Jusqu\'à 70% d\'économie par rapport à un lavage traditionnel.' },
+        { icon: '\u{1F504}', title: '100% Satisfaction', desc: 'Satisfait ou remboursé. Notre engagement qualité.' },
+        { icon: '\u{1F30D}', title: 'Écologique', desc: '0 L d\'eau, zéro produit chimique agressif, biodégradable.' },
+        { icon: '\u{23F0}', title: 'Rapide', desc: '10 min chrono pour une voiture. Vous ne perdez pas votre après-midi.' }
+    ];
+    var html = '';
+    items.forEach(function (item) {
+        html += '<div class="trust-card fade-in"><div class="trust-icon">' + item.icon + '</div>' +
+            '<h3>' + item.title + '</h3><p>' + item.desc + '</p></div>';
+    });
+    grid.innerHTML = html;
+}
 
+/* === CALCULATEUR ÉCONOMIES === */
+function initSavingsCalc() {
+    var el = document.getElementById('savings-calc');
+    if (!el) return;
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var count = bookings.length;
+    var freq = 24;
+    var ecoYear = 1000 * freq;
+    var stationYear = 3000 * freq;
+    var informelYear = 1500 * freq;
+    var saved = stationYear - ecoYear;
+    var yourSavings = count > 3 ? (stationYear - ecoYear) * (count / 12) : 48000;
+
+    el.innerHTML =
+        '<table class="savings-table"><thead><tr><th>Méthode</th><th>Coût / lavage</th><th>Coût / mois (2x)</th><th>Coût / an</th></tr></thead><tbody>' +
+        '<tr class="eco-row"><td>🧼 EcoWash</td><td>1 000 F</td><td>2 000 F</td><td><strong>24 000 F</strong></td></tr>' +
+        '<tr><td>🏗️ Station auto</td><td>3 000 F</td><td>6 000 F</td><td>72 000 F</td></tr>' +
+        '<tr><td>🧑‍🔧 Laveur informel</td><td>1 500 F</td><td>3 000 F</td><td>36 000 F</td></tr>' +
+        '</tbody></table>' +
+        '<div class="savings-total">💰 Économisez jusqu\'à <span style="font-size:1.5rem">' +
+        formatPrice(Math.max(saved, yourSavings)) + '</span> par an avec EcoWash</div>';
+}
+
+/* === URGENCE TIMER === */
+function initUrgenceTimer() {
+    var hero = document.querySelector('.hero .container');
+    if (!hero) return;
+    var div = document.createElement('div');
+    div.className = 'urgence-timer fade-in';
+    var end = localStorage.getItem('ecowash_promo_end');
+    if (!end) {
+        var d = new Date();
+        d.setDate(d.getDate() + 7);
+        end = d.toISOString();
+        localStorage.setItem('ecowash_promo_end', end);
+    }
+    div.innerHTML = '\u23F3 Offre valable encore : <span class="timer-num" id="timer-countdown"></span>';
+    hero.appendChild(div);
+
+    function updateTimer() {
+        var el = document.getElementById('timer-countdown');
+        if (!el) return;
+        var now = Date.now();
+        var target = new Date(end).getTime();
+        var diff = Math.max(0, target - now);
+        var days = Math.floor(diff / 86400000);
+        var hours = Math.floor((diff % 86400000) / 3600000);
+        if (days > 0) {
+            el.textContent = days + 'j ' + hours + 'h';
+        } else {
+            var mins = Math.floor((diff % 3600000) / 60000);
+            var secs = Math.floor((diff % 60000) / 1000);
+            el.textContent = hours + 'h ' + mins + 'm ' + secs + 's';
+        }
+    }
+    updateTimer();
+    setInterval(updateTimer, 1000);
+}
 

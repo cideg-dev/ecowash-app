@@ -24,6 +24,11 @@
 <body>
     <div class="notif-bar" id="notif-bar"></div>
 
+    <div class="promo-banner" id="promo-banner">
+        <span>🎉 <strong>Offre de lancement</strong> — 1<sup>er</sup> lavage à <strong>500 F</strong> au lieu de 1 000 F !</span>
+        <button class="promo-close" onclick="this.parentElement.style.display='none'">&times;</button>
+    </div>
+
     <header>
         <nav class="container">
             <div class="logo">EcoWash</div>
@@ -54,6 +59,14 @@
             <p class="subtitle" data-i18n="hero.subtitle">La révolution du lavage auto sans eau en Afrique</p>
             <p class="description" data-i18n="hero.desc">Propre, économique, écologique. Moins de 0,5L d'eau par véhicule.</p>
             <a href="#rendezvous" class="btn" data-i18n="hero.btn">Réserver un lavage</a>
+        </div>
+    </section>
+
+    <section id="etapes" class="section">
+        <div class="container">
+            <h2 class="fade-in">Comment ça marche ?</h2>
+            <p class="text-center fade-in" style="color:var(--gray);margin-bottom:40px">3 étapes simples pour un véhicule impeccable</p>
+            <div class="steps-grid fade-in" id="steps-grid"></div>
         </div>
     </section>
 
@@ -126,6 +139,21 @@
         <div class="container">
             <h2 class="fade-in" data-i18n="zones.title">Zones d'intervention</h2>
             <div class="zones-grid fade-in" id="zones-grid"></div>
+        </div>
+    </section>
+
+    <section id="garantie" class="section">
+        <div class="container">
+            <h2 class="fade-in">Pourquoi choisir EcoWash ?</h2>
+            <div class="trust-grid fade-in" id="trust-grid"></div>
+        </div>
+    </section>
+
+    <section id="economies" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Combien économisez-vous ?</h2>
+            <p class="text-center fade-in" style="color:var(--gray);margin-bottom:30px">Comparez le coût annuel selon la méthode de lavage</p>
+            <div class="savings-calc fade-in" id="savings-calc"></div>
         </div>
     </section>
 
@@ -434,6 +462,12 @@
 
     <a class="whatsapp-btn" id="whatsapp-btn" target="_blank" aria-label="WhatsApp">
         <svg viewBox="0 0 32 32" fill="white"><path d="M16 0C7.2 0 0 7.2 0 16c0 3 0.8 5.8 2.2 8.2L0 32l8-2.2c2.4 1.4 5.2 2.2 8 2.2 8.8 0 16-7.2 16-16S24.8 0 16 0zM24.4 22.4c-0.4 1-1.8 2-3 2.2-0.8 0.2-1.8 0.2-3-0.4-0.8-0.4-2.2-1.4-3.8-3-1.4-1.4-2.4-2.8-2.8-3.6-0.4-0.8-0.4-1.8-0.2-2.4 0.2-0.6 0.6-1.2 1-1.6 0.4-0.4 0.6-0.6 0.8-0.6 0.4 0 0.6 0 0.8 0 0.2 0 0.4-0.2 0.6 0.4 0.2 0.6 0.6 2 0.6 2.2 0 0.2 0 0.4-0.2 0.6s-0.4 0.4-0.6 0.8c-0.2 0.2-0.4 0.4-0.2 0.8 0.2 0.4 1 1.6 2 2.6 1.2 1.2 2.4 1.6 2.8 1.8 0.4 0.2 0.8 0.2 1 0 0.2-0.2 0.6-0.8 0.8-1 0.2-0.2 0.4-0.4 0.8-0.2s2 1 2.4 1.2c0.4 0.2 0.6 0.4 0.8 0.4 0.2 0.2 0.2 0.6 0 1z"/></svg>
+    </a>
+
+    <a class="sticky-cta" href="#rendezvous">
+        <span class="sticky-cta-icon">&#128197;</span>
+        <span class="sticky-cta-text">Réserver maintenant</span>
+        <span class="sticky-cta-sub">Profitez de l'offre</span>
     </a>
 
     <div class="cart-overlay" id="cart-overlay"></div>
