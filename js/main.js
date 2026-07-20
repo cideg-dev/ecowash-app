@@ -55,6 +55,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initNewsletter();
     initSatisfactionSurvey();
     initProductRatings();
+    initSeasonalPromo();
+    initGiftCard();
+    initReviewPhoto();
+    initMultiVehiclePrice();
 
     showStep(1);
 });
@@ -1946,5 +1950,267 @@ function initAdminWhatsAppReply() {
             });
         };
     }
+}
+
+/* === PROMOS SAISONNIÈRES === */
+function initSeasonalPromo() {
+    var banner = document.getElementById('promo-banner');
+    if (!banner) return;
+    var month = new Date().getMonth();
+    var promos = [
+        { months: [0,1], text: '🎉 <strong>Nouvelle année</strong> — -20% sur le lavage Premium avec le code <strong>AN2026</strong> !' },
+        { months: [3,4], text: '🌿 <strong>Printemps</strong> — 1 lavage acheté = 1 cirage offert avec <strong>PRINTEMPS</strong> !' },
+        { months: [6,7], text: '☀️ <strong>Été</strong> — Protection anti-UV offerte pour tout lavage Premium !' },
+        { months: [11], text: '🎄 <strong>Fêtes</strong> — -15% sur l\'abonnement 3 mois avec <strong>NOEL</strong> !' }
+    ];
+    for (var i = 0; i < promos.length; i++) {
+        if (promos[i].months.indexOf(month) !== -1) {
+            banner.innerHTML = '<span>' + promos[i].text + '</span><button class="promo-close" onclick="this.parentElement.style.display=\'none\'">&times;</button>';
+            break;
+        }
+    }
+}
+
+/* === CARTE CADEAU === */
+function initGiftCard() {
+    var footer = document.querySelector('.footer-section.links, .footer-section:last-child');
+    if (!footer) return;
+    var giftBtn = document.createElement('button');
+    giftBtn.className = 'btn btn-outline';
+    giftBtn.textContent = '🎁 Offrir EcoWash';
+    giftBtn.style.cssText = 'font-size:.85rem;padding:8px 16px;margin-top:8px;width:100%';
+    giftBtn.addEventListener('click', function () {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--card-bg);border-radius:12px;padding:30px;max-width:380px;width:100%;text-align:center';
+        box.innerHTML =
+            '<div style="font-size:3rem;margin-bottom:10px">🎁</div>' +
+            '<h3 style="margin-bottom:10px">Carte Cadeau EcoWash</h3>' +
+            '<p style="color:var(--gray);font-size:.9rem;margin-bottom:20px">Offrez un lavage sans eau à un proche</p>' +
+            '<div class="form-group"><label>Montant (FCFA)</label><select id="gift-amount">' +
+            '<option value="2000">2 000 F - 1 lavage Simple</option>' +
+            '<option value="5000">5 000 F - 2 lavages Complets</option>' +
+            '<option value="10000">10 000 F - Abonnement 1 mois</option>' +
+            '<option value="25000">25 000 F - Abonnement 3 mois</option></select></div>' +
+            '<div class="form-group"><label>Message (optionnel)</label><textarea id="gift-msg" rows="2" placeholder="Joyeux anniversaire !"></textarea></div>' +
+            '<button class="btn btn-block" onclick="generateGiftCard()">🎁 Générer ma carte</button>' +
+            '<button class="btn btn-outline btn-block" style="margin-top:8px" onclick="this.closest(\'div[style]\').remove()">Annuler</button>';
+        overlay.appendChild(box);
+        overlay.addEventListener('click', function (e) { if (e.target === this) this.remove(); });
+        document.body.appendChild(overlay);
+    });
+    var linksSection = footer.closest('.footer-content')?.querySelector('.footer-section:last-child');
+    if (linksSection) linksSection.appendChild(giftBtn);
+    else footer.parentElement?.appendChild(giftBtn);
+}
+
+function generateGiftCard() {
+    var amount = document.getElementById('gift-amount')?.value;
+    var msg = document.getElementById('gift-msg')?.value || '';
+    if (!amount) { showToast('Veuillez choisir un montant', 'error'); return; }
+    var code = 'CADEAU-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    var gift = { code: code, amount: parseInt(amount), message: msg, date: new Date().toISOString(), used: false };
+    var gifts = JSON.parse(localStorage.getItem('ecowash_gift_cards') || '[]');
+    gifts.push(gift);
+    localStorage.setItem('ecowash_gift_cards', JSON.stringify(gifts));
+
+    var overlay = document.querySelector('div[style*="z-index: 9998"]');
+    if (overlay) overlay.remove();
+    showToast('🎉 Carte générée ! Code: ' + code, 'success');
+
+    var printBox = document.createElement('div');
+    printBox.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    printBox.innerHTML =
+        '<div style="background:var(--card-bg);border-radius:16px;padding:40px 30px;max-width:400px;width:100%;text-align:center;border:3px dashed var(--primary)">' +
+        '<div style="font-size:3rem;margin-bottom:10px">🎁</div>' +
+        '<h2 style="color:var(--primary-dark)">EcoWash</h2>' +
+        '<p style="font-size:1.2rem;font-weight:700;margin:15px 0">Carte Cadeau</p>' +
+        '<div style="font-size:2rem;font-weight:700;color:var(--primary);margin:15px 0">' + parseInt(amount).toLocaleString() + ' F</div>' +
+        '<div style="background:var(--light);padding:10px;border-radius:8px;font-family:monospace;font-size:1.1rem;letter-spacing:2px">' + code + '</div>' +
+        (msg ? '<p style="margin-top:15px;font-style:italic;color:var(--gray)">"' + msg + '"</p>' : '') +
+        '<p style="font-size:.8rem;color:var(--gray);margin-top:20px">Offert par EcoWash Bénin</p>' +
+        '<button class="btn btn-block" style="margin-top:15px" onclick="this.closest(\'div[style]\').remove();window.print()">🖨️ Imprimer</button>' +
+        '<button class="btn btn-outline btn-block" style="margin-top:8px" onclick="this.closest(\'div[style]\').remove()">Fermer</button></div>';
+    document.body.appendChild(printBox);
+}
+
+/* === PHOTO AVIS === */
+function initReviewPhoto() {
+    var form = document.getElementById('review-form');
+    if (!form) return;
+    var photoInput = document.createElement('div');
+    photoInput.style.cssText = 'margin-bottom:15px';
+    photoInput.innerHTML = '<label for="review-photo">Photo (optionnelle)</label><input type="file" id="review-photo" accept="image/*" style="display:block;margin-top:5px;font-size:.9rem">';
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) form.insertBefore(photoInput, submitBtn);
+
+    var origSubmit = form.onsubmit;
+    form.addEventListener('submit', function (e) {
+        var fileInput = document.getElementById('review-photo');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                var photos = JSON.parse(localStorage.getItem('ecowash_review_photos') || '[]');
+                photos.push({ data: ev.target.result, date: new Date().toISOString() });
+                localStorage.setItem('ecowash_review_photos', JSON.stringify(photos));
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+    });
+}
+
+/* === PRIX MULTI-VÉHICULES === */
+function initMultiVehiclePrice() {
+    var quantity = document.getElementById('bk-quantity');
+    var display = document.getElementById('bk-price-display');
+    var vehicle = document.getElementById('bk-vehicle');
+    var service = document.getElementById('bk-service');
+
+    function updatePrice() {
+        if (!display || !vehicle || !service || !quantity) return;
+        var v = vehicle.value;
+        var s = service.value;
+        var q = parseInt(quantity.value) || 1;
+        var prices = { simple: { citadine: 1000, berline: 1500, suv: 2000, utilitaire: 1500 }, complet: { citadine: 2500, berline: 3000, suv: 4000, utilitaire: 3500 }, premium: { citadine: 4000, berline: 5000, suv: 6000, utilitaire: 5500 } };
+        var unitPrice = prices[s]?.[v] || 0;
+        var total = unitPrice * q;
+        if (unitPrice > 0) {
+            var discount = q >= 3 ? ' (-' + Math.round((1 - 0.9) * 100) + '% pour ' + q + ' véhicules)' : q >= 2 ? ' (-5% pour ' + q + ' véhicules)' : '';
+            if (q >= 2) total = Math.round(total * (q >= 3 ? 0.9 : 0.95));
+            display.textContent = '💰 ' + q + ' × ' + formatPrice(unitPrice) + ' = ' + formatPrice(total) + discount;
+        } else {
+            display.textContent = '';
+        }
+    }
+
+    if (vehicle) vehicle.addEventListener('change', updatePrice);
+    if (service) service.addEventListener('change', updatePrice);
+    if (quantity) quantity.addEventListener('change', updatePrice);
+    updatePrice();
+
+    /* Update booking data with quantity */
+    var form = document.getElementById('booking-form');
+    if (form) {
+        var origSubmit = form._origSubmit;
+        form.addEventListener('submit', function (e) {
+            var qty = document.getElementById('bk-quantity');
+            if (qty) {
+                var hidden = document.getElementById('bk-hidden-qty') || document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.id = 'bk-hidden-qty';
+                hidden.name = 'quantity';
+                hidden.value = qty.value;
+                form.appendChild(hidden);
+            }
+        });
+    }
+}
+
+/* === ADMIN GESTION PRODUITS === */
+function initAdminProducts() {
+    if (!document.getElementById('tab-analytics')) return;
+    var adminNav = document.querySelector('.tabs');
+    if (!adminNav) return;
+
+    var prodTab = document.createElement('button');
+    prodTab.className = 'tab';
+    prodTab.textContent = 'Produits';
+    prodTab.setAttribute('onclick', "switchTab('products',this)");
+    adminNav.appendChild(prodTab);
+
+    var prodContent = document.createElement('div');
+    prodContent.className = 'tab-content';
+    prodContent.id = 'tab-products';
+    prodContent.innerHTML =
+        '<h3 style="margin-bottom:15px">Gestion des codes promo</h3>' +
+        '<div id="promo-admin-list"></div>' +
+        '<div style="margin-top:20px;padding:20px;background:var(--white);border-radius:8px;box-shadow:var(--shadow)">' +
+        '<h4 style="margin-bottom:10px">Ajouter un code promo</h4>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px">' +
+        '<input type="text" id="new-promo-code" placeholder="Code" style="padding:10px;border:1px solid #ddd;border-radius:6px">' +
+        '<select id="new-promo-type" style="padding:10px;border:1px solid #ddd;border-radius:6px"><option value="percent">%</option><option value="fixed">Montant fixe</option></select>' +
+        '<input type="number" id="new-promo-value" placeholder="Valeur" style="padding:10px;border:1px solid #ddd;border-radius:6px;width:80px">' +
+        '</div>' +
+        '<button class="btn" style="margin-top:10px" onclick="addPromo()">Ajouter</button></div>';
+
+    var exportTab = document.createElement('button');
+    exportTab.className = 'tab';
+    exportTab.textContent = 'Export clients';
+    exportTab.setAttribute('onclick', "switchTab('export-clients',this)");
+    adminNav.appendChild(exportTab);
+
+    var exportContent = document.createElement('div');
+    exportContent.className = 'tab-content';
+    exportContent.id = 'tab-export-clients';
+    exportContent.innerHTML =
+        '<div style="max-width:400px;margin:0 auto;text-align:center">' +
+        '<p style="margin-bottom:20px;color:var(--gray)">Téléchargez la liste des clients uniques</p>' +
+        '<button class="btn" onclick="exportCustomers()">📥 Exporter clients (CSV)</button></div>';
+
+    var rendContent = document.getElementById('tab-rendezvous') || document.querySelector('.tab-content:last-child');
+    var analyticsContent = document.getElementById('tab-analytics');
+    if (analyticsContent) analyticsContent.parentElement.insertBefore(prodContent, analyticsContent.nextSibling);
+    prodContent.parentElement.appendChild(exportContent);
+    exportContent.parentElement.appendChild(rendContent);
+}
+
+function addPromo() {
+    var code = document.getElementById('new-promo-code')?.value.trim().toUpperCase();
+    var type = document.getElementById('new-promo-type')?.value;
+    var value = parseInt(document.getElementById('new-promo-value')?.value);
+    if (!code || !value) { showToast('Veuillez remplir tous les champs', 'error'); return; }
+    var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+    promos.push({ code: code, type: type, value: value, label: type === 'percent' ? '-' + value + '%' : '-' + value + ' F' });
+    localStorage.setItem('ecowash_promos', JSON.stringify(promos));
+    showToast('✅ Code ' + code + ' ajouté !', 'success');
+    document.getElementById('new-promo-code').value = '';
+    document.getElementById('new-promo-value').value = '';
+    renderPromoList();
+}
+
+function renderPromoList() {
+    var el = document.getElementById('promo-admin-list');
+    if (!el) return;
+    var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+    if (!promos.length) { el.innerHTML = '<div class="empty-msg">Aucun code promo</div>'; return; }
+    var html = '<div style="display:grid;gap:10px">';
+    promos.forEach(function (p, i) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--white);padding:12px 16px;border-radius:8px;box-shadow:var(--shadow)">' +
+            '<span><strong>' + p.code + '</strong> — ' + p.label + '</span>' +
+            '<button onclick="deletePromo(' + i + ')" style="background:#e74c3c;color:white;border:none;border-radius:6px;padding:4px 12px;cursor:pointer">Suppr.</button></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function deletePromo(i) {
+    var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+    promos.splice(i, 1);
+    localStorage.setItem('ecowash_promos', JSON.stringify(promos));
+    renderPromoList();
+    showToast('Code supprimé', 'info');
+}
+
+function exportCustomers() {
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var customerMap = {};
+    bookings.forEach(function (b) {
+        var key = (b.phone || b.name).toLowerCase().replace(/\s/g, '');
+        if (!customerMap[key]) customerMap[key] = { name: b.name, phone: b.phone, bookings: 0, total: 0 };
+        customerMap[key].bookings++;
+    });
+    var csv = 'Nom,Téléphone,Nombre de lavages\n';
+    Object.keys(customerMap).forEach(function (k) {
+        var c = customerMap[k];
+        csv += '"' + c.name + '","' + c.phone + '",' + c.bookings + '\n';
+    });
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ecowash_clients_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 

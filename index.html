@@ -205,6 +205,9 @@
         <div class="container">
             <h2 class="fade-in" data-i18n="zones.title">Zones d'intervention</h2>
             <div class="zones-grid fade-in" id="zones-grid"></div>
+            <div class="map-wrapper fade-in" id="map-wrapper" style="margin-top:30px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4047317.1789277657!2d0.6942684851758077!3d7.593508589853942!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x102196e1d8e1e9c9%3A0x7f1d5b9a9c9c8c0f!2sBenin!5e0!3m2!1sfr!2s!4v1" width="100%" height="350" style="border:0;display:block" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
         </div>
     </section>
 
@@ -251,6 +254,16 @@
                             <option value="berline">Berline</option>
                             <option value="suv">4x4 / SUV</option>
                             <option value="utilitaire">Utilitaire</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-quantity">Nombre de véhicules</label>
+                        <select id="bk-quantity">
+                            <option value="1">1 véhicule</option>
+                            <option value="2">2 véhicules</option>
+                            <option value="3">3 véhicules</option>
+                            <option value="4">4 véhicules</option>
+                            <option value="5">5+ véhicules</option>
                         </select>
                     </div>
                     <div id="bk-price-display"></div>
