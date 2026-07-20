@@ -3,6 +3,7 @@ const URLS = [
     '.',
     'index.html',
     'admin.html',
+    'produits.html',
     'css/style.css',
     'js/main.js',
     'js/config.js',

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2ecc71">
+    <title>EcoWash - Nos Produits</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="images/icon-192.svg">
+    <style>
+        .page-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            text-align: center;
+            padding: 120px 20px 60px;
+        }
+        .page-header h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        .page-header p { opacity: .85; font-size: 1.1rem; }
+
+        .product-nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: -30px auto 50px;
+            position: relative;
+            z-index: 2;
+        }
+        .product-nav a {
+            background: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            transition: all .3s;
+        }
+        .product-nav a:hover { background: var(--primary); color: white; }
+
+        .cat-title {
+            text-align: center;
+            font-size: 1.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+        }
+        .cat-sub {
+            text-align: center;
+            color: var(--gray);
+            margin-bottom: 40px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform .3s;
+        }
+        .product-card:hover { transform: translateY(-5px); }
+
+        .product-card .p-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px;
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+        }
+        .product-card .p-header h3 { font-size: 1.2rem; color: var(--dark); }
+        .product-card .p-header .p-code {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: .75rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .product-card .p-body { padding: 25px; }
+        .product-card .p-body p { color: #555; font-size: .9rem; margin-bottom: 15px; line-height: 1.7; }
+
+        .product-card .func-list { list-style: none; margin-bottom: 15px; }
+        .product-card .func-list li {
+            padding: 6px 0 6px 24px;
+            position: relative;
+            font-size: .9rem;
+            color: #444;
+        }
+        .product-card .func-list li::before {
+            content: '\2713';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .product-card .p-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: .85rem;
+        }
+        .product-card .p-meta span { color: #555; }
+        .product-card .p-meta strong { color: var(--dark); }
+
+        .product-card .p-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-card .p-footer .price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .product-card .p-footer .price small {
+            font-size: .8rem;
+            font-weight: 400;
+            color: var(--gray);
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .service-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            overflow: hidden;
+            transition: transform .3s;
+        }
+        .service-card:hover { transform: translateY(-5px); }
+        .service-card .s-header {
+            padding: 30px 20px 20px;
+        }
+        .service-card .s-header h3 { font-size: 1.1rem; margin-bottom: 10px; }
+        .service-card .s-header .s-price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .service-card .s-body { padding: 0 20px 20px; }
+        .service-card .s-body ul { list-style: none; text-align: left; }
+        .service-card .s-body ul li {
+            padding: 8px 0 8px 24px;
+            position: relative;
+            font-size: .9rem;
+            color: #555;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .service-card .s-body ul li::before {
+            content: '\2713';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .service-card .s-footer { padding: 20px; }
+        .service-card.featured {
+            border: 2px solid var(--primary);
+            transform: scale(1.03);
+        }
+        .service-card.featured:hover { transform: scale(1.03) translateY(-5px); }
+        .badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .abonnement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+        .abo-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            text-align: center;
+            transition: transform .3s;
+        }
+        .abo-card:hover { transform: translateY(-3px); }
+        .abo-card h3 { font-size: 1rem; margin-bottom: 5px; }
+        .abo-card .abo-price { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 10px; }
+        .abo-card .abo-price small { font-size: .75rem; color: var(--gray); font-weight: 400; }
+        .abo-card ul { list-style: none; font-size: .85rem; color: #555; margin-bottom: 15px; }
+        .abo-card ul li { padding: 4px 0; }
+        .abo-card .economie { color: var(--primary); font-weight: 600; font-size: .85rem; }
+
+        .retail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .retail-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            text-align: center;
+            transition: transform .3s;
+        }
+        .retail-card:hover { transform: translateY(-3px); }
+        .retail-card .r-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .retail-card h3 { font-size: 1rem; margin-bottom: 5px; }
+        .retail-card .r-price { font-size: 1.3rem; font-weight: 700; color: var(--primary-dark); }
+        .retail-card .r-price small { font-size: .8rem; color: var(--gray); font-weight: 400; }
+        .retail-card .r-desc { font-size: .8rem; color: #666; margin: 8px 0; }
+
+        @media (max-width: 768px) {
+            .service-card.featured { transform: none; }
+            .service-card.featured:hover { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit">EcoWash</a></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Accueil</a></li>
+                <li><a href="index.html#produit">Produit</a></li>
+                <li><a href="produits.html">Catalogue</a></li>
+                <li><a href="index.html#tarifs">Tarifs</a></li>
+                <li><a href="index.html#rendezvous">Rendez-vous</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+            </ul>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+        </nav>
+    </header>
+
+    <div class="page-header">
+        <h1>Notre Catalogue Complet</h1>
+        <p>Produits professionnels et grand public — Qualité professionnelle, prix Afrique</p>
+    </div>
+
+    <div class="product-nav">
+        <a href="#services">Prestations</a>
+        <a href="#gamme-a">Gamme A</a>
+        <a href="#gamme-b">Gamme B</a>
+        <a href="#gamme-c">Gamme C</a>
+        <a href="#gamme-d">Gamme D</a>
+        <a href="#retail">Grand Public</a>
+        <a href="#abonnements">Abonnements</a>
+    </div>
+
+    <div class="container">
+        <section id="services" class="section">
+            <h2 class="fade-in">Nos Prestations de Lavage</h2>
+            <p class="text-center fade-in">Services clé en main — Nous venons à vous ou vous recevons dans notre garage</p>
+            <div class="services-grid fade-in">
+                <div class="service-card">
+                    <div class="s-header">
+                        <h3>Lavage Express</h3>
+                        <div class="s-price">1 000 F</div>
+                    </div>
+                    <div class="s-body">
+                        <ul>
+                            <li>Nettoyage carrosserie complet</li>
+                            <li>Vitres avant + arrière</li>
+                            <li>Brillance express</li>
+                            <li>Durée : 10-15 min</li>
+                        </ul>
+                    </div>
+                    <div class="s-footer">
+                        <a href="index.html#rendezvous" class="btn btn-outline" style="color:var(--primary-dark);border-color:var(--primary-dark)">Réserver</a>
+                    </div>
+                </div>
+
+                <div class="service-card featured">
+                    <div class="s-header">
+                        <span class="badge">Populaire</span>
+                        <h3>Lavage Complet</h3>
+                        <div class="s-price">2 500 F</div>
+                    </div>
+                    <div class="s-body">
+                        <ul>
+                            <li>Nettoyage extérieur complet</li>
+                            <li>Nettoyage intérieur (sièges, tapis, tableau de bord)</li>
+                            <li>Vitres sans traces</li>
+                            <li>Pneus + jantes brillants</li>
+                            <li>Restauration couleur légère</li>
+                            <li>Durée : 25-30 min</li>
+                        </ul>
+                    </div>
+                    <div class="s-footer">
+                        <a href="index.html#rendezvous" class="btn">Réserver</a>
+                    </div>
+                </div>
+
+                <div class="service-card">
+                    <div class="s-header">
+                        <h3>Lavage Premium</h3>
+                        <div class="s-price">4 000 F</div>
+                    </div>
+                    <div class="s-body">
+                        <ul>
+                            <li>Lavage complet extérieur + intérieur</li>
+                            <li>Traitement anti-rayures</li>
+                            <li>Restauration couleur intégrale</li>
+                            <li>Protection cire de carnauba</li>
+                            <li>Parfum d'habitacle au choix</li>
+                            <li>Désinfection intérieure</li>
+                            <li>Durée : 40-45 min</li>
+                        </ul>
+                    </div>
+                    <div class="s-footer">
+                        <a href="index.html#rendezvous" class="btn btn-outline" style="color:var(--primary-dark);border-color:var(--primary-dark)">Réserver</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gamme-a" class="section">
+            <h2 class="fade-in">Gamme A — Lavage Sans Eau</h2>
+            <p class="cat-sub fade-in">Concentrés professionnels pour lavage sans eau — Jusqu'à 500 lavages par litre de concentré</p>
+            <div class="product-grid fade-in">
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">A1</span>
+                        <h3>Concentré Liquide 1:200</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Concentré liquide haute performance pour lavage sans eau. Shampoing + cire + lavage en un seul produit. Formule lubrifiante anti-rayures.</p>
+                        <ul class="func-list">
+                            <li>Dilution 1:200 (5 ml concentré → 1 L de produit prêt)</li>
+                            <li>Nettoie, brille et protège en une étape</li>
+                            <li>pH neutre (7) — respecte la peinture</li>
+                            <li>Anti-rayures : lubrifie la saleté avant essuyage</li>
+                            <li>Durée de vie : 3 ans</li>
+                            <li>Certifié OE/ROHS/SGS</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>1 L / 5 L / 20 L / 200 L</strong></span>
+                            <span>Rendement : <strong>500 véhicules/L</strong></span>
+                            <span>Coût/véhicule : <strong>~5 F</strong></span>
+                            <span>Provenance : <strong>Chine / Dubai</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">2 000 F <small>/L concentré</small></span>
+                        <span style="font-size:.8rem;color:var(--gray)">Prix pro</span>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">A2</span>
+                        <h3>Poudre Concentrée OPS</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Poudre concentrée en sachet. Idéal pour l'export (léger, pas de liquide). Dissolution rapide dans l'eau.</p>
+                        <ul class="func-list">
+                            <li>Dilution 1:100 (500 g → 50 L de produit prêt)</li>
+                            <li>Facile à transporter et stocker</li>
+                            <li>Mousse abondante pour sensation de propreté</li>
+                            <li>Contient agents brillance et protection</li>
+                            <li>Certifié MSDS, SGS, TUV</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>Sachet 500 g</strong></span>
+                            <span>Rendement : <strong>40 véhicules/sachet</strong></span>
+                            <span>Coût/véhicule : <strong>~25 F</strong></span>
+                            <span>MOQ : <strong>2 000 sachets</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">1 000 F <small>/sachet</small></span>
+                        <span style="font-size:.8rem;color:var(--gray)">Prix pro</span>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">A3</span>
+                        <h3>Kit DUBI CHEM 208 L</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Kit professionnel complet pour fabrication de concentré. Inclus poudre builders + liquide wetting agents + mode d'emploi. Solution la plus économique pour gros volume.</p>
+                        <ul class="func-list">
+                            <li>1 kit = 208 L de concentré</li>
+                            <li>Dilution finale 1:200 = 41 600 L de produit prêt</li>
+                            <li>~100 000 véhicules par kit</li>
+                            <li>Stock disponible au Kenya (livraison rapide Afrique)</li>
+                            <li>Fournisseur : DUBI CHEM (UAE/Kenya/Inde)</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>Kit 208 L</strong></span>
+                            <span>Rendement : <strong>~100 000 véhicules</strong></span>
+                            <span>Coût/véhicule : <strong>&lt; 2 F</strong></span>
+                            <span>Contact : <strong>+971 56 108 1115</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">~200 000 F <small>/kit</small></span>
+                        <span class="btn" style="padding:6px 16px;font-size:.8rem" onclick="window.open('https://wa.me/971561081115?text=Bonjour%20DUBI%20CHEM%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20kit%20CAR%20WASH%20CONC%20KIT%20208L','_blank')">WhatsApp</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gamme-b" class="section bg-light">
+            <h2 class="fade-in">Gamme B — Brillance, Cire & Restauration Couleur</h2>
+            <p class="cat-sub fade-in">Redonnez vie aux peintures pâlies. Cire de carnauba + polymères synthétiques anti-UV</p>
+            <div class="product-grid fade-in">
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">B1</span>
+                        <h3>Henkseal Waterless Wash Wax</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Nettoie + brille + protège en un seul geste. Contient de la cire de carnauba brésilienne et des polymères de synthèse anti-UV.</p>
+                        <ul class="func-list">
+                            <li>Dilution 1:15 (65 ml → 1 L de produit prêt)</li>
+                            <li>Cire de carnauba : brillance chaude et profonde</li>
+                            <li>Protection anti-UV (empêche le pâlissement)</li>
+                            <li>Formule "water spot free" — pas de traces</li>
+                            <li>Haute lubrification = zéro rayure</li>
+                            <li>Utilisable sur peinture, verre, chrome, plastique</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>473 ml concentré</strong></span>
+                            <span>Rendement : <strong>~7.5 L de produit prêt</strong></span>
+                            <span>Coût/véhicule : <strong>~200 F</strong></span>
+                            <span>Provenance : <strong>Chine (Hangzhou)</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">3 000 F <small>/conc. 473 ml</small></span>
+                        <a href="index.html#rendezvous" class="btn" style="padding:6px 16px;font-size:.8rem">Ajouter au lavage</a>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">B2</span>
+                        <h3>Restauration Couleur Intégrale</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Service de restauration pour peintures décolorées par le soleil. Double application du produit B avec polissage manuel.</p>
+                        <ul class="func-list">
+                            <li>Ravive les peintures pâlies en 15 min</li>
+                            <li>Effet "comme neuf" garanti</li>
+                            <li>Nourrit la peinture en profondeur</li>
+                            <li>Protège contre les UV pour 3 mois</li>
+                            <li>Réalisé par nos techniciens formés</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Durée : <strong>15 min</strong></span>
+                            <span>Fréquence : <strong>Tous les 3 mois</strong></span>
+                            <span>Produit : <strong>B1 + polish manuel</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">+ 2 000 F <small>en option</small></span>
+                        <a href="index.html#rendezvous" class="btn" style="padding:6px 16px;font-size:.8rem">Ajouter</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gamme-c" class="section">
+            <h2 class="fade-in">Gamme C — Nano Céramique (Protection Premium)</h2>
+            <p class="cat-sub fade-in">Protection ultra-durable pour peinture. Jusqu'à 12 mois de protection hydrophobe</p>
+            <div class="product-grid fade-in">
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">C1</span>
+                        <h3>Flamingo Nano Ceramic Coating</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Kit céramique professionnel 3 étapes. Dégraissant + Nano Céramique Si02 + Polish Protectant. Fournisseur basé au Kenya.</p>
+                        <ul class="func-list">
+                            <li>Flacon A : Dégraissant peinture (50 ml)</li>
+                            <li>Flacon B : Nano Céramique SIO2 (30 ml) — dureté H9+</li>
+                            <li>Flacon C : Polish Protectant (50 ml) — renouvelle après 3 mois</li>
+                            <li>Effet hydrophobe : l'eau glisse sur la peinture</li>
+                            <li>Protection 12 mois contre UV, pluie, pollution</li>
+                            <li>Brillance intense et durable</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Kit : <strong>1 voiture</strong></span>
+                            <span>Durée d'application : <strong>30 min</strong></span>
+                            <span>Protection : <strong>12 mois</strong></span>
+                            <span>Fournisseur : <strong>Kenya (autowheels.co.ke)</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">40 000 F <small>/kit</small></span>
+                        <a href="index.html#rendezvous" class="btn" style="padding:6px 16px;font-size:.8rem">Réserver ce service</a>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">C2</span>
+                        <h3>Nasiol Nano Protection Pro</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Kit professionnel complet distribué depuis l'Afrique du Sud. Idéal pour flottes et véhicules haut de gamme.</p>
+                        <ul class="func-list">
+                            <li>Rain Repellent (vitres) — visibilité sous la pluie</li>
+                            <li>Ceramic Coating — protection peinture 12 mois</li>
+                            <li>Plastic Protection — protège plastiques extérieurs</li>
+                            <li>Fabric Protection — protège tissus intérieurs</li>
+                            <li>Car Shampoo spécifique nano</li>
+                            <li>Interior Cleaner + Microfibre</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Kit : <strong>1-2 véhicules</strong></span>
+                            <span>Fournisseur : <strong>Afrique du Sud</strong></span>
+                            <span>Protection : <strong>12+ mois</strong></span>
+                            <span>Livraison : <strong>Rapide vers Afrique Ouest</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">59 000 F <small>/kit standard</small></span>
+                        <span class="btn" style="padding:6px 16px;font-size:.8rem" onclick="window.open('https://amekhgroup.co.za','_blank')">Commander</span>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">C3</span>
+                        <h3>Protection Céramique Garage</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Service de protection céramique appliqué par nos techniciens certifiés. Résultat professionnel garanti.</p>
+                        <ul class="func-list">
+                            <li>Application complète sur toute la carrosserie</li>
+                            <li>Préparation : lavage + dégraissage complet</li>
+                            <li>Couche céramique SIO3 épaisseur 8 microns</li>
+                            <li>Couche SIO2 verre (optique)</li>
+                            <li>Effet hydrophobe immédiat</li>
+                            <li>Brillance "wet look"</li>
+                            <li>Réduction des fréquences de lavage</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Durée : <strong>1h-1h30</strong></span>
+                            <span>Protection : <strong>12-24 mois</strong></span>
+                            <span>Économie d'eau : <strong>-80%</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">75 000 F <small>/véhicule</small></span>
+                        <a href="index.html#rendezvous" class="btn" style="padding:6px 16px;font-size:.8rem">Réserver</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gamme-d" class="section bg-light">
+            <h2 class="fade-in">Gamme D — Dégraissant Moteur & Jantes</h2>
+            <p class="cat-sub fade-in">Concentré biodégradable puissant. Food-safe, non toxique pour les employés</p>
+            <div class="product-grid fade-in">
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">D1</span>
+                        <h3>Aoifa Láidir — NanoWorks</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Dégraissant concentré biodégradable fabriqué en Afrique du Sud. Le meilleur rapport qualité/prix pour le marché africain.</p>
+                        <ul class="func-list">
+                            <li>Dilution 1:10 à 1:40 selon l'usage</li>
+                            <li>Moteur : pur ou dilué 1:5, laisser agir 5 min</li>
+                            <li>Jantes : dilué 1:10, brosser, essuyer</li>
+                            <li>Soubassement : dilué 1:20</li>
+                            <li>Certifié food-safe — pas toxique</li>
+                            <li>Biodégradable — zéro pollution</li>
+                            <li>Enlève carbone, graisse, huile moteur</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>1 L / 5 L / 20 L</strong></span>
+                            <span>Coût/véhicule : <strong>~300 F</strong></span>
+                            <span>Fournisseur : <strong>Afrique du Sud</strong></span>
+                            <span>Contact : <strong>info@nanoworks.co.za</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">3 000 F <small>/L concentré</small></span>
+                        <a href="index.html#rendezvous" class="btn" style="padding:6px 16px;font-size:.8rem">Ajouter au lavage</a>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="p-header">
+                        <span class="p-code">D2</span>
+                        <h3>DUBI Degreaser Concentrate</h3>
+                    </div>
+                    <div class="p-body">
+                        <p>Dégraissant professionnel concentré pour moteurs et jantes. Fourni par DUBI CHEM (UAE/Kenya).</p>
+                        <ul class="func-list">
+                            <li>Dilution 1:10</li>
+                            <li>Puissant dégraissant moteur</li>
+                            <li>Utilisable sur jantes aluminium</li>
+                            <li>Biodégradable</li>
+                            <li>Disponible au Kenya (stock Afrique)</li>
+                        </ul>
+                        <div class="p-meta">
+                            <span>Format : <strong>20 L / 200 L</strong></span>
+                            <span>Coût/véhicule : <strong>~200 F</strong></span>
+                            <span>Contact : <strong>+971 56 108 1115</strong></span>
+                        </div>
+                    </div>
+                    <div class="p-footer">
+                        <span class="price">2 000 F <small>/L concentré</small></span>
+                        <span class="btn" style="padding:6px 16px;font-size:.8rem" onclick="window.open('https://wa.me/971561081115?text=Bonjour%20DUBI%20CHEM%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20d%C3%A9graissant%20moteur','_blank')">WhatsApp</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="retail" class="section">
+            <h2 class="fade-in">Produits Grand Public</h2>
+            <p class="cat-sub fade-in">Pour les particuliers — Lavez votre véhicule vous-même, partout, sans eau</p>
+            <div class="retail-grid fade-in">
+                <div class="retail-card">
+                    <div class="r-icon">&#128166;</div>
+                    <h3>Spray Lavage Sans Eau</h3>
+                    <div class="r-price">5 000 F <small>/500 ml</small></div>
+                    <div class="r-desc">Nettoie + brille + protège. Jusqu'à 10 lavages par flacon. Prêt à l'emploi.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+                <div class="retail-card">
+                    <div class="r-icon">&#128067;</div>
+                    <h3>Spray Cire Brillance</h3>
+                    <div class="r-price">6 000 F <small>/500 ml</small></div>
+                    <div class="r-desc">Cire de carnauba. Brillance intense. Protection anti-UV 3 mois.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+                <div class="retail-card">
+                    <div class="r-icon">&#128176;</div>
+                    <h3>Kit Complet Démarrage</h3>
+                    <div class="r-price">15 000 F <small>/kit</small></div>
+                    <div class="r-desc">1 spray 500 ml + 1 spray cire + 2 microfibres + guide d'utilisation.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+                <div class="retail-card">
+                    <div class="r-icon">&#128717;</div>
+                    <h3>Pack Microfibres Pro (×5)</h3>
+                    <div class="r-price">3 500 F <small>/lot</small></div>
+                    <div class="r-desc">Microfibres professionnelles 300 g/m². Idéal pour lavage sans traces.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+                <div class="retail-card">
+                    <div class="r-icon">&#128188;</div>
+                    <h3>Format Professionnel 1 L</h3>
+                    <div class="r-price">8 000 F <small>/1 L</small></div>
+                    <div class="r-desc">Concentré 1:200. Jusqu'à 500 lavages. Pour petits garages et flottes.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+                <div class="retail-card">
+                    <div class="r-icon">&#128176;</div>
+                    <h3>Nettoyant Intérieur</h3>
+                    <div class="r-price">4 000 F <small>/500 ml</small></div>
+                    <div class="r-desc">Nettoie sièges, tableau de bord, plastiques. Non gras. Odeur fraîche.</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Commander</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="abonnements" class="section bg-light">
+            <h2 class="fade-in">Abonnements Mensuels</h2>
+            <p class="cat-sub fade-in">Économisez jusqu'à 30% — Revenu récurrent garanti pour nous, prix réduit pour vous</p>
+            <div class="abonnement-grid fade-in">
+                <div class="abo-card">
+                    <h3>Essentiel</h3>
+                    <div class="abo-price">7 000 F <small>/mois</small></div>
+                    <ul>
+                        <li>1 lavage Complet/mois</li>
+                        <li>Brillance incluse</li>
+                        <li>Rappel SMS avant visite</li>
+                    </ul>
+                    <div class="economie">Économisez 500 F</div>
+                    <a href="index.html#rendezvous" class="btn" style="padding:8px 20px;font-size:.85rem">Souscrire</a>
+                </div>
+                <div class="abo-card" style="border:2px solid var(--primary)">
+                    <h3>Régulier</h3>
+                    <div class="abo-price">12 000 F <small>/mois</small></div>
+                    <ul>
+                        <li>2 lavages Complet/mois</li>
+                        <li>Brillance + protection incluse</li>
+                        <li>Prioritaire (créneau garanti)</li>
+                        <li>Rappel SMS/WhatsApp</li>
+                    </ul>
+                    <div class="economie">Économisez 3 000 F</div>
+                    <a href="index.html#rendezvous" class="btn" style="padding:8px 20px;font-size:.85rem">Souscrire</a>
+                </div>
+                <div class="abo-card">
+                    <h3>Premium</h3>
+                    <div class="abo-price">25 000 F <small>/mois</small></div>
+                    <ul>
+                        <li>4 lavages Premium/mois</li>
+                        <li>1 céramique légère/mois</li>
+                        <li>Prioritaire + créneau dédié</li>
+                        <li>Rappel WhatsApp</li>
+                        <li>Annulation gratuite</li>
+                    </ul>
+                    <div class="economie">Économisez 8 000 F</div>
+                    <a href="index.html#rendezvous" class="btn" style="padding:8px 20px;font-size:.85rem">Souscrire</a>
+                </div>
+                <div class="abo-card">
+                    <h3>Flotte Pro</h3>
+                    <div class="abo-price">35 000 F <small>/véhicule</small></div>
+                    <ul>
+                        <li>4 lavages/semaine/véhicule</li>
+                        <li>Rapport mensuel détaillé</li>
+                        <li>Facturation entreprise</li>
+                        <li>Intervention sur site</li>
+                        <li>5+ véhicules</li>
+                    </ul>
+                    <div class="economie">Économisez 5 000 F/véhicule</div>
+                    <a href="index.html#contact" class="btn" style="padding:8px 20px;font-size:.85rem">Nous contacter</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section text-center">
+            <h2 class="fade-in">Prêt à passer commande ?</h2>
+            <p style="margin-bottom:30px;color:#555">Contactez-nous pour un devis personnalisé ou réservez un lavage</p>
+            <a href="index.html#rendezvous" class="btn" style="background:var(--primary);color:white;margin-right:10px">Réserver un lavage</a>
+            <a href="index.html#contact" class="btn btn-outline" style="color:var(--primary-dark);border-color:var(--primary-dark)">Demander un devis</a>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>EcoWash</h4>
+                    <p>Lavage auto sans eau, écologique et économique.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Email : contact@ecowash.africa</p>
+                    <p>Tél : +225 XX XX XX XX</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Liens</h4>
+                    <p><a href="produits.html" class="footer-link">Catalogue produits</a></p>
+                    <p><a href="admin.html" class="footer-link">Administration</a></p>
+                </div>
+                <div class="footer-section">
+                    <h4>Suivez-nous</h4>
+                    <p>Facebook | Instagram | WhatsApp</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 EcoWash. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <a href="https://wa.me/225XXXXXXXXX?text=Bonjour%20EcoWash%20!%20Je%20suis%20int%C3%A9ress%C3%A9%20par%20vos%20produits" target="_blank" class="whatsapp-btn" aria-label="WhatsApp">
+        <svg viewBox="0 0 32 32" fill="white"><path d="M16 0C7.2 0 0 7.2 0 16c0 3 0.8 5.8 2.2 8.2L0 32l8-2.2c2.4 1.4 5.2 2.2 8 2.2 8.8 0 16-7.2 16-16S24.8 0 16 0zM24.4 22.4c-0.4 1-1.8 2-3 2.2-0.8 0.2-1.8 0.2-3-0.4-0.8-0.4-2.2-1.4-3.8-3-1.4-1.4-2.4-2.8-2.8-3.6-0.4-0.8-0.4-1.8-0.2-2.4 0.2-0.6 0.6-1.2 1-1.6 0.4-0.4 0.6-0.6 0.8-0.6 0.4 0 0.6 0 0.8 0 0.2 0 0.4-0.2 0.6 0.4 0.2 0.6 0.6 2 0.6 2.2 0 0.2 0 0.4-0.2 0.6s-0.4 0.4-0.6 0.8c-0.2 0.2-0.4 0.4-0.2 0.8 0.2 0.4 1 1.6 2 2.6 1.2 1.2 2.4 1.6 2.8 1.8 0.4 0.2 0.8 0.2 1 0 0.2-0.2 0.6-0.8 0.8-1 0.2-0.2 0.4-0.4 0.8-0.2s2 1 2.4 1.2c0.4 0.2 0.6 0.4 0.8 0.4 0.2 0.2 0.2 0.6 0 1z"/></svg>
+    </a>
+
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
