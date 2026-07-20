@@ -20,6 +20,7 @@
     <link rel="apple-touch-icon" href="images/icon-512.svg">
     <title>EcoWash - Lavage Auto Sans Eau</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -205,9 +206,8 @@
         <div class="container">
             <h2 class="fade-in" data-i18n="zones.title">Zones d'intervention</h2>
             <div class="zones-grid fade-in" id="zones-grid"></div>
-            <div class="map-wrapper fade-in" id="map-wrapper" style="margin-top:30px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)">
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4047317.1789277657!2d0.6942684851758077!3d7.593508589853942!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x102196e1d8e1e9c9%3A0x7f1d5b9a9c9c8c0f!2sBenin!5e0!3m2!1sfr!2s!4v1" width="100%" height="350" style="border:0;display:block" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-            </div>
+            <div class="zones-grid fade-in" id="zones-grid"></div>
+            <div class="map-wrapper fade-in" id="map-wrapper" style="margin-top:30px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);height:350px"></div>
         </div>
     </section>
 
@@ -518,6 +518,57 @@
         </div>
     </footer>
 
+    <div class="modal-overlay" id="payment-modal" onclick="closePaymentModal(event)">
+        <div class="modal-content" style="max-width:420px;text-align:center">
+            <div class="modal-header">
+                <h2>Paiement Mobile Money</h2>
+                <button class="chat-close" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div id="payment-init">
+                <div style="font-size:2rem;margin:15px 0">&#128179;</div>
+                <p style="font-size:1.2rem;font-weight:600" id="payment-amount">0 FCFA</p>
+                <p style="color:var(--gray);margin:5px 0">via <strong id="payment-method-name">Orange Money</strong></p>
+                <div class="form-group" style="margin-top:15px">
+                    <label for="payment-phone">Votre numéro Mobile Money</label>
+                    <input type="tel" id="payment-phone" placeholder="+229 XX XX XX XX" required>
+                </div>
+                <div id="payment-terms" style="font-size:.8rem;color:var(--gray);margin-top:10px">
+                    En confirmant, vous autorisez le débit de ce montant sur votre compte Mobile Money.
+                </div>
+                <div style="display:flex;gap:10px;margin-top:20px">
+                    <button class="btn btn-block" onclick="startPayment()">✅ Payer</button>
+                    <button class="btn btn-block btn-outline" onclick="closePaymentModal()">Annuler</button>
+                </div>
+            </div>
+            <div id="payment-progress" style="display:none;padding:10px 0">
+                <div id="payment-step-1" class="payment-step">
+                    <div class="payment-spinner"></div>
+                    <span>Envoi de la demande à <span id="payment-op">Orange Money</span>...</span>
+                </div>
+                <div id="payment-step-2" class="payment-step" style="display:none">
+                    <div class="payment-spinner"></div>
+                    <span>Confirmation via USSD <strong>*144#</strong></span>
+                </div>
+                <div id="payment-step-3" class="payment-step" style="display:none">
+                    <div style="font-size:1.5rem;color:var(--success,#27ae60)">&#10003;</div>
+                    <span>Paiement reçu !</span>
+                </div>
+                <div id="payment-result" style="display:none;margin-top:20px">
+                    <div style="background:#f0faf0;border-radius:8px;padding:15px;font-size:.85rem">
+                        <p style="margin-bottom:5px">Transaction <strong id="payment-txid">TX-XXXXX</strong></p>
+                        <p style="color:var(--gray)">Montant: <strong id="payment-tx-amount">0 FCFA</strong></p>
+                        <p style="color:var(--gray)">Date: <span id="payment-tx-date"></span></p>
+                    </div>
+                    <button class="btn btn-block" style="margin-top:15px" onclick="confirmPaidBooking()">✅ Finaliser la réservation</button>
+                </div>
+                <div id="payment-failed" style="display:none;margin-top:15px">
+                    <p style="color:#e74c3c">&#10060; Paiement échoué. Veuillez réessayer.</p>
+                    <button class="btn btn-block" onclick="retryPayment()">Réessayer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="client-modal" onclick="closeClientDashboard(event)">
         <div class="modal-content" style="max-width:600px">
             <div class="modal-header">
@@ -534,6 +585,20 @@
             </div>
             <div id="client-dashboard" class="hidden">
                 <div class="stats-grid" id="client-stats" style="margin-bottom:20px"></div>
+                <div id="client-impact" style="display:flex;justify-content:center;gap:20px;margin-bottom:20px;flex-wrap:wrap">
+                    <div class="impact-mini" style="text-align:center;padding:10px 15px;background:var(--light);border-radius:8px;font-size:.8rem">
+                        <div style="font-size:1.3rem;font-weight:700;color:var(--primary)" id="ci-water">0 L</div>
+                        <div style="color:var(--gray)">💧 Eau économisée</div>
+                    </div>
+                    <div class="impact-mini" style="text-align:center;padding:10px 15px;background:var(--light);border-radius:8px;font-size:.8rem">
+                        <div style="font-size:1.3rem;font-weight:700;color:var(--primary-dark)" id="ci-co2">0 kg</div>
+                        <div style="color:var(--gray)">🌿 CO₂ évité</div>
+                    </div>
+                    <div class="impact-mini" style="text-align:center;padding:10px 15px;background:var(--light);border-radius:8px;font-size:.8rem">
+                        <div style="font-size:1.3rem;font-weight:700;color:#e67e22" id="ci-points">0</div>
+                        <div style="color:var(--gray)">⭐ Points fidélité</div>
+                    </div>
+                </div>
                 <h3 style="margin-bottom:10px">Mes badges</h3>
                 <div id="client-badges" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px"></div>
                 <h3 style="margin-bottom:10px">Mon historique</h3>
@@ -541,6 +606,7 @@
                 <div style="margin-top:20px;padding-top:15px;border-top:1px solid #eee;display:flex;gap:10px;flex-wrap:wrap">
                     <button class="btn btn-outline" onclick="shareReferral()">📤 Parrainer</button>
                     <button class="btn btn-outline" onclick="viewInvoices()">📄 Mes factures</button>
+                    <button class="btn btn-outline" onclick="downloadStatement()">📊 Mon relevé</button>
                     <button class="btn btn-outline" onclick="clientLogout()">Déconnexion</button>
                 </div>
             </div>
@@ -625,6 +691,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/cart.js"></script>

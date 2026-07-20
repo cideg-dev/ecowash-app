@@ -153,6 +153,9 @@
             <button class="tab" onclick="switchTab('export',this)">
                 Export
             </button>
+            <button class="tab" onclick="switchTab('provider',this)" style="background:#8e44ad;color:white">
+                🧽 Prestataire
+            </button>
         </div>
 
         <div class="tab-content active" id="tab-messages"></div>
@@ -186,6 +189,17 @@
                 <button class="btn" onclick="exportCSV('bookings')" style="margin:5px">Rendez-vous</button>
                 <button class="btn" onclick="exportCSV('reviews')" style="margin:5px">Avis clients</button>
                 <button class="btn btn-outline" onclick="exportAll()" style="margin:5px;display:block;width:100%;margin-top:15px">Tout exporter</button>
+            </div>
+        </div>
+        <div class="tab-content" id="tab-provider">
+            <div id="provider-today" style="margin-bottom:15px">
+                <h3 style="display:flex;align-items:center;gap:8px">🧽 <span>Mes interventions du jour</span></h3>
+                <p style="color:var(--gray);font-size:.9rem" id="provider-date"></p>
+            </div>
+            <div id="provider-list"></div>
+            <div style="margin-top:30px">
+                <h3 style="margin-bottom:15px">📊 Mon résumé</h3>
+                <div class="stats-grid" id="provider-stats"></div>
             </div>
         </div>
     </div>
@@ -404,6 +418,7 @@
             if (name === 'calendar') renderCalendar();
             if (name === 'analytics') renderAnalytics();
             if (name === 'customers') renderCustomers();
+            if (name === 'provider') renderProviderDashboard();
         }
 
         function renderAnalytics() {
@@ -565,6 +580,66 @@
             document.getElementById('admin-pwd').addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') login();
             });
+        }
+
+        /* === MODE PRESTATAIRE === */
+        function renderProviderDashboard() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('provider-date').textContent = "Aujourd'hui, " + new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var todayBks = bookings.filter(function (b) { return b.date === today; });
+
+            var list = document.getElementById('provider-list');
+            if (todayBks.length === 0) {
+                list.innerHTML = '<div class="empty-msg">Aucune intervention pr\u00e9vue aujourd\u2019hui. \ud83c\udf89</div>';
+            } else {
+                var html = '';
+                var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+                todayBks.forEach(function (b, i) {
+                    var statusLabels = { confirmé: 'Confirmé', en_cours: 'En cours', terminé: 'Terminé', annulé: 'Annulé' };
+                    html += '<div class="msg-card" style="border-left:4px solid ' +
+                        (b.status === 'terminé' ? '#27ae60' : b.status === 'annulé' ? '#e74c3c' : b.status === 'en_cours' ? '#f39c12' : '#3498db') + ';margin-bottom:12px">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">' +
+                        '<div><strong>' + esc(b.name) + '</strong><br>' +
+                        '<span style="font-size:.85rem;color:var(--gray)">&#9742; ' + esc(b.phone) + '</span></div>' +
+                        '<span class="bk-status ' + (b.status || 'confirmé') + '">' + (statusLabels[b.status] || 'Confirmé') + '</span></div>' +
+                        '<div style="margin-top:8px;font-size:.9rem">' +
+                        '&#128205; ' + esc(b.address) + '<br>' +
+                        '&#128663; ' + esc(b.vehicle) + ' &middot; ' + (svcNames[b.service] || b.service) + '<br>' +
+                        '&#128197; ' + b.time + ' &middot; &#128176; ' + esc(b.payment) + '</div>' +
+                        '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
+                        '<button class="bk-status-btn" style="background:#f39c12;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'confirmé\',this)">&#128073; Confirmé</button>' +
+                        '<button class="bk-status-btn" style="background:#e67e22;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'en_cours\',this)">&#128668; En cours</button>' +
+                        '<button class="bk-status-btn" style="background:#27ae60;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'terminé\',this)">&#10003; Terminé</button>' +
+                        '<button class="bk-status-btn" style="background:#e74c3c;color:white;border:none" onclick="providerUpdateStatus(' + i + ',\'annulé\',this)">&#10060; Annulé</button></div></div>';
+                });
+                list.innerHTML = html;
+            }
+
+            /* Provider stats */
+            var totalToday = todayBks.length;
+            var doneToday = todayBks.filter(function (b) { return b.status === 'terminé'; }).length;
+            var cancelledToday = todayBks.filter(function (b) { return b.status === 'annulé'; }).length;
+            var ongoing = todayBks.filter(function (b) { return b.status === 'en_cours'; }).length;
+
+            document.getElementById('provider-stats').innerHTML =
+                '<div class="stat-card"><div class="num">' + totalToday + '</div><div class="label">Aujourd\'hui</div></div>' +
+                '<div class="stat-card"><div class="num">' + doneToday + '</div><div class="label">Terminés</div></div>' +
+                '<div class="stat-card"><div class="num">' + ongoing + '</div><div class="label">En cours</div></div>' +
+                '<div class="stat-card"><div class="num">' + cancelledToday + '</div><div class="label">Annulés</div></div>';
+        }
+
+        function providerUpdateStatus(idx, status, btn) {
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var today = new Date().toISOString().split('T')[0];
+            var todayBks = bookings.filter(function (b) { return b.date === today; });
+            var realIdx = bookings.indexOf(todayBks[idx]);
+            if (realIdx === -1) return;
+            bookings[realIdx].status = status;
+            localStorage.setItem('ecowash_bookings', JSON.stringify(bookings));
+            renderProviderDashboard();
+            if (typeof showToast === 'function') showToast('Statut mis à jour : ' + status, 'success');
         }
     </script>
 </body>

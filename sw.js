@@ -75,6 +75,22 @@ self.addEventListener('message', function (e) {
     }
 });
 
+self.addEventListener('push', function (e) {
+    var data = { title: 'EcoWash', body: 'Nouvelle mise à jour disponible' };
+    if (e.data) {
+        try { data = JSON.parse(e.data.text()); } catch (err) {}
+    }
+    e.waitUntil(
+        self.registration.showNotification(data.title || 'EcoWash', {
+            body: data.body || '',
+            icon: 'images/icon-192.svg',
+            badge: 'images/icon-192.svg',
+            vibrate: [200, 100, 200],
+            data: data.url ? { url: data.url } : {}
+        })
+    );
+});
+
 self.addEventListener('notificationclick', function (e) {
     e.notification.close();
     e.waitUntil(

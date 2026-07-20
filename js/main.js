@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initSlideDrawer();
     initCancelBooking();
     initAdminProducts();
+    initPaymentModal();
+    initInteractiveMap();
+    initPushSub();
 
     showStep(1);
 });
@@ -274,17 +277,28 @@ function initBooking() {
                 alert('Veuillez remplir tous les champs obligatoires.');
                 return;
             }
-            saveLocal('ecowash_bookings', data);
-            localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
-            scheduleBookingReminder(data);
-            form.reset();
-            if (success) {
-                success.classList.remove('hidden');
-                setTimeout(function () { success.classList.add('hidden'); }, 6000);
+            window._pendingBooking = data;
+            if (data.payment !== 'Espèces') {
+                showPaymentModal(data);
+            } else {
+                finalizeBooking(data);
             }
-            showTracking(data);
-            requestNotify();
         });
+    }
+
+    function finalizeBooking(data) {
+        saveLocal('ecowash_bookings', data);
+        localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
+        scheduleBookingReminder(data);
+        form.reset();
+        currentStep = 1;
+        showStep(1);
+        if (success) {
+            success.classList.remove('hidden');
+            setTimeout(function () { success.classList.add('hidden'); }, 6000);
+        }
+        showTracking(data);
+        requestNotify();
     }
 }
 
@@ -1042,10 +1056,16 @@ function renderClientDashboard(phone) {
     var points = myBookings.length * 50;
     try { points += parseInt(localStorage.getItem('ecowash_extra_points') || '0'); } catch(e) {}
 
+    var totalSpent = myBookings.reduce(function (sum, b) { return sum + ({ simple: 1000, complet: 2500, premium: 4000 }[b.service] || 0); }, 0);
+
     document.getElementById('client-stats').innerHTML =
         '<div class="stat-card"><div class="num">' + myBookings.length + '</div><div class="label">Lavages</div></div>' +
-        '<div class="stat-card"><div class="num">' + points + '</div><div class="label">Points</div></div>' +
+        '<div class="stat-card"><div class="num">' + totalSpent.toLocaleString() + ' F</div><div class="label">Dépensé</div></div>' +
         '<div class="stat-card"><div class="num">' + getBadges(myBookings.length).length + '</div><div class="label">Badges</div></div>';
+
+    document.getElementById('ci-water').textContent = (myBookings.length * 300).toLocaleString() + ' L';
+    document.getElementById('ci-co2').textContent = (myBookings.length * 3.5).toLocaleString() + ' kg';
+    document.getElementById('ci-points').textContent = points;
 
     var badges = getBadges(myBookings.length);
     var badgesHtml = '';
@@ -2343,5 +2363,252 @@ function initCancelBooking() {
         }
     });
     observer.observe(dashboard, { attributes: true, attributeFilter: ['class'] });
+}
+
+/* === PAIEMENT MOBILE MONEY === */
+function initPaymentModal() {
+    window._pendingBooking = null;
+    window._paymentAttempts = 0;
+}
+
+function showPaymentModal(data) {
+    var modal = document.getElementById('payment-modal');
+    if (!modal) return;
+    var payMethods = { 'Orange Money': 'Orange Money', 'MTN Mobile Money': 'MTN Mobile Money', 'Moov Money': 'Moov Money', 'Wave': 'Wave' };
+    var methodName = payMethods[data.payment] || data.payment;
+    var prices = { simple: 1000, complet: 2500, premium: 4000 };
+    var qty = parseInt(document.getElementById('bk-hidden-qty')?.value || '1');
+    var basePrice = (prices[data.service] || 1000) * qty;
+    var promoInput = document.getElementById('bk-promo');
+    var promoCode = promoInput ? promoInput.value.trim() : '';
+    var discount = 0;
+    if (promoCode) {
+        var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+        promos.forEach(function (p) {
+            if (p.code === promoCode) {
+                discount = p.type === 'percent' ? Math.round(basePrice * p.value / 100) : p.value;
+            }
+        });
+    }
+    var total = Math.max(0, basePrice - discount);
+    if (qty >= 2) total = Math.round(total * 0.95);
+    if (qty >= 3) total = Math.round(total * 0.90);
+
+    document.getElementById('payment-amount').textContent = total.toLocaleString() + ' FCFA';
+    document.getElementById('payment-method-name').textContent = methodName;
+    document.getElementById('payment-op').textContent = methodName;
+    document.getElementById('payment-phone').value = data.phone;
+    document.getElementById('payment-tx-amount').textContent = total.toLocaleString() + ' FCFA';
+
+    document.getElementById('payment-init').style.display = 'block';
+    document.getElementById('payment-progress').style.display = 'none';
+    document.getElementById('payment-result').style.display = 'none';
+    document.getElementById('payment-failed').style.display = 'none';
+    document.getElementById('payment-step-2').style.display = 'none';
+    document.getElementById('payment-step-3').style.display = 'none';
+    document.getElementById('payment-step-1').querySelector('.payment-spinner').style.display = 'inline-block';
+
+    modal.classList.add('show');
+    window._pendingBooking = data;
+    window._pendingAmount = total;
+}
+
+function startPayment() {
+    var phone = document.getElementById('payment-phone').value.trim();
+    if (!phone || phone.length < 6) {
+        alert('Veuillez entrer votre numéro Mobile Money.');
+        return;
+    }
+    window._paymentPhone = phone;
+    window._pendingBooking.phone = phone;
+
+    document.getElementById('payment-init').style.display = 'none';
+    document.getElementById('payment-progress').style.display = 'block';
+    document.getElementById('payment-failed').style.display = 'none';
+
+    document.getElementById('payment-step-1').style.display = 'flex';
+    document.getElementById('payment-step-2').style.display = 'none';
+    document.getElementById('payment-step-3').style.display = 'none';
+    document.getElementById('payment-result').style.display = 'none';
+
+    simulatePaymentStep1();
+}
+
+function simulatePaymentStep1() {
+    setTimeout(function () {
+        var s1 = document.getElementById('payment-step-1');
+        if (!s1) return;
+        var spinner = s1.querySelector('.payment-spinner');
+        if (spinner) spinner.style.display = 'none';
+        var span = s1.querySelector('span');
+        if (span) span.innerHTML = '&#10003; Demande envoyée à ' + (document.getElementById('payment-op')?.textContent || '');
+        s1.style.color = '#27ae60';
+        simulatePaymentStep2();
+    }, 2000);
+}
+
+function simulatePaymentStep2() {
+    var s2 = document.getElementById('payment-step-2');
+    if (!s2) return;
+    s2.style.display = 'flex';
+    setTimeout(function () {
+        var spinner = s2.querySelector('.payment-spinner');
+        if (spinner) spinner.style.display = 'none';
+        var span = s2.querySelector('span');
+        if (span) span.innerHTML = '&#10003; Confirmation USSD reçue';
+        s2.style.color = '#27ae60';
+        simulatePaymentStep3();
+    }, 3000);
+}
+
+function simulatePaymentStep3() {
+    var success = window._paymentAttempts < 2;
+    if (success) {
+        var s3 = document.getElementById('payment-step-3');
+        if (s3) s3.style.display = 'flex';
+        var txid = 'TX-' + Date.now().toString(36).toUpperCase();
+        document.getElementById('payment-txid').textContent = txid;
+        document.getElementById('payment-tx-date').textContent = new Date().toLocaleString('fr-FR');
+        document.getElementById('payment-result').style.display = 'block';
+        window._pendingTxId = txid;
+    } else {
+        document.getElementById('payment-failed').style.display = 'block';
+    }
+}
+
+function confirmPaidBooking() {
+    var data = window._pendingBooking;
+    if (!data) return;
+    data.paymentStatus = 'payé';
+    data.paymentMethod = data.payment;
+    data.transactionId = window._pendingTxId || '';
+    data.paymentDate = new Date().toISOString();
+    data.status = 'confirmé';
+    closePaymentModal();
+    if (typeof finalizeBooking === 'function') finalizeBooking(data);
+}
+
+function retryPayment() {
+    window._paymentAttempts++;
+    document.getElementById('payment-failed').style.display = 'none';
+    var s1 = document.getElementById('payment-step-1');
+    if (s1) {
+        var spinner = s1.querySelector('.payment-spinner');
+        if (spinner) spinner.style.display = 'inline-block';
+        var span = s1.querySelector('span');
+        if (span) span.textContent = 'Envoi de la demande à ' + (document.getElementById('payment-op')?.textContent || '') + '...';
+        s1.style.color = '';
+        s1.style.display = 'flex';
+    }
+    var s2 = document.getElementById('payment-step-2');
+    if (s2) s2.style.display = 'none';
+    var s3 = document.getElementById('payment-step-3');
+    if (s3) s3.style.display = 'none';
+    simulatePaymentStep1();
+}
+
+function closePaymentModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    var modal = document.getElementById('payment-modal');
+    if (modal) modal.classList.remove('show');
+    window._pendingBooking = null;
+}
+
+/* === RELEVÉ CLIENT === */
+function downloadStatement() {
+    var phone = localStorage.getItem('ecowash_client_phone');
+    if (!phone) { alert('Connectez-vous d\'abord.'); return; }
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var myBookings = bookings.filter(function (b) { return b.phone === phone; });
+    if (!myBookings.length) { alert('Aucune activité.'); return; }
+
+    var prices = { simple: 1000, complet: 2500, premium: 4000 };
+    var lines = ['Date,Service,Véhicule,Montant,Paiement,Statut'];
+    var total = 0;
+    myBookings.forEach(function (b) {
+        var amt = prices[b.service] || 0;
+        total += amt;
+        lines.push([b.date, b.service, b.vehicle, amt, b.payment, b.status || 'confirmé'].join(','));
+    });
+    lines.push(['TOTAL,,,,', total, ''].join(''));
+    var csv = lines.join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ecowash_releve_' + phone.replace(/[^0-9]/g, '') + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/* === CARTE INTERACTIVE LEAF === */
+function initInteractiveMap() {
+    var wrapper = document.getElementById('map-wrapper');
+    if (!wrapper || typeof L === 'undefined') return;
+
+    var map = L.map(wrapper, { zoomControl: true, scrollWheelZoom: false }).setView([9.3077, 2.3158], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    var zones = C.business?.areas || [];
+    var coords = {
+        'Cotonou': [6.3703, 2.3912],
+        'Porto-Novo': [6.4969, 2.6289],
+        'Parakou': [9.3400, 2.6300],
+        'Abomey-Calavi': [6.4486, 2.3556],
+        'Bohicon': [7.1789, 2.0667],
+        'Ouidah': [6.3600, 2.0850],
+        'Lokossa': [6.6389, 1.7167],
+        'Natitingou': [10.3042, 1.3747],
+        'Djougou': [9.7050, 1.6689],
+        'Covè': [7.2200, 2.3400],
+        'Allada': [6.6650, 2.1539],
+        'Comè': [6.4000, 1.8833]
+    };
+
+    zones.forEach(function (z) {
+        var c = coords[z];
+        if (c) {
+            L.marker(c).addTo(map)
+                .bindPopup('<strong>' + z + '</strong><br>Zone couverte par EcoWash');
+        }
+    });
+
+    wrapper.addEventListener('mouseenter', function () { map.scrollWheelZoom.enable(); });
+    wrapper.addEventListener('mouseleave', function () { map.scrollWheelZoom.disable(); });
+}
+
+/* === NOTIFICATIONS PUSH === */
+function initPushSub() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!localStorage.getItem('ecowash_push_subscribed') && C.notifications?.push !== false) {
+        var delay = setTimeout(function () {
+            Notification.requestPermission().then(function (perm) {
+                if (perm === 'granted') {
+                    navigator.serviceWorker.ready.then(function (reg) {
+                        reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array('BErw3nZ0KQx1YcP2dF3gH4iJ5kL6mN7oP8qR9sT0uV1wX2yZ3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9')
+                        }).then(function () {
+                            localStorage.setItem('ecowash_push_subscribed', 'true');
+                        }).catch(function () {});
+                    });
+                }
+            });
+        }, 30000);
+    }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var output = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+        output[i] = rawData.charCodeAt(i);
+    }
+    return output;
 }
 
