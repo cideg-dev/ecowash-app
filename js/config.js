@@ -4,13 +4,13 @@ var CONFIG = {
         name: 'EcoWash',
         slogan: 'La révolution du lavage auto sans eau en Afrique',
         email: 'contact@ecowash.africa',
-        phone: '+229 XX XX XX XX',
+        phone: '+229 01 64 28 51 72',
         hours: 'Lun-Sam 08h00-18h00',
         areas: ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon', 'Ouidah', 'Lokossa', 'Natitingou'],
         currency: { symbol: 'F', code: 'FCFA', locale: 'fr-FR' }
     },
     whatsapp: {
-        numbers: ['229XXXXXXXXX', '229XXXXXXXXX'],
+        numbers: ['2290164285172', '2290159058315'],
         message: 'Bonjour EcoWash Bénin ! J\'ai besoin d\'informations'
     },
     email: {
@@ -36,7 +36,7 @@ var CONFIG = {
     social: {
         facebook: 'https://facebook.com/ecowashbenin',
         instagram: 'https://instagram.com/ecowashbenin',
-        whatsapp: 'https://wa.me/229XXXXXXXXX'
+        whatsapp: 'https://wa.me/2290164285172'
     },
     theme: {
         default: 'light',
