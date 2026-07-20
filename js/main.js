@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initReferral();
     initPWAInstall();
     initCatalogCartButtons();
+    initBlog();
+    initLoyalty();
+    initPromo();
+    initCookies();
 });
 
 function initNav() {
@@ -716,5 +720,116 @@ function initCatalogCartButtons() {
         });
     });
 }
+
+/* === BLOG === */
+function initBlog() {
+    var grid = document.getElementById('blog-grid');
+    if (!grid) return;
+    var posts = [
+        { tag: 'Astuce', title: 'Comment éviter les rayures au lavage ?', desc: 'Utilisez toujours deux microfibres : une pour nettoyer, une pour sécher. Le mouvement droit est essentiel.', icon: '\u{1F6A8}', color: '#e74c3c' },
+        { tag: 'Conseil', title: 'Protégez votre peinture du soleil africain', desc: 'Le soleil décolore la peinture. Notre cire de carnauba anti-UV nourrit et protège votre carrosserie.', icon: '\u2600\uFE0F', color: '#f39c12' },
+        { tag: 'Éco', title: 'Économisez 300L d\'eau à chaque lavage', desc: 'Un lavage traditionnel utilise 150-300L. EcoWash : 0L. En 1 an, c\'est assez d\'eau pour une famille.', icon: '\u{1F30D}', color: '#2ecc71' },
+        { tag: 'Produit', title: 'Notre formule concentré 1:200 expliquée', desc: '1L de concentré = 200L de produit prêt = 500 lavages. Soit moins de 5 FCFA par véhicule !', icon: '\u{1F9EA}', color: '#3498db' },
+        { tag: 'Moto', title: 'Lavage moto sans eau : 500 F, 7 min', desc: 'Notre forfait moto est rapide et économique. Parfait pour les taxis-motos et scooters.', icon: '\u{1F3CD}\uFE0F', color: '#9b59b6' },
+        { tag: 'Abonnement', title: 'Économisez 30% avec un abonnement', desc: 'Forfait Régulier : 2 lavages/mois à 12 000 F au lieu de 15 000 F. Économisez 3 000 F !', icon: '\u{1F4B0}', color: '#27ae60' }
+    ];
+    var html = '';
+    posts.forEach(function (p) {
+        html += '<div class="blog-card fade-in"><div class="blog-img" style="background:' + p.color + '20;color:' + p.color + '">' + p.icon + '</div>' +
+            '<div class="blog-body"><span class="tag">' + p.tag + '</span><h3>' + p.title + '</h3><p>' + p.desc + '</p></div></div>';
+    });
+    grid.innerHTML = html;
+}
+
+/* === FIDÉLITÉ === */
+function initLoyalty() {
+    var pointsEl = document.getElementById('loyalty-points');
+    var barEl = document.getElementById('loyalty-bar-fill');
+    var nextEl = document.getElementById('loyalty-next');
+    var rewardsEl = document.getElementById('loyalty-rewards');
+    if (!pointsEl) return;
+
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var points = bookings.length * 50;
+    try { points += parseInt(localStorage.getItem('ecowash_extra_points') || '0'); } catch(e) {}
+
+    var rewards = [
+        { pts: 100, label: 'Lavage gratuit', icon: '\u{1F3C6}' },
+        { pts: 250, label: 'Cirage offert', icon: '\u2728' },
+        { pts: 500, label: 'Lavage Premium', icon: '\u{1F31F}' },
+        { pts: 1000, label: 'Céramique -50%', icon: '\u{1F48E}' }
+    ];
+
+    pointsEl.textContent = points;
+    var next = 100;
+    for (var i = 0; i < rewards.length; i++) {
+        if (points < rewards[i].pts) { next = rewards[i].pts; break; }
+    }
+    if (nextEl) nextEl.textContent = 'Prochain palier : ' + next + ' pts (' + (next - points) + ' pts restants)';
+
+    var pct = Math.min(100, (points / next) * 100);
+    if (barEl) barEl.style.width = pct + '%';
+
+    if (rewardsEl) {
+        var html = '';
+        rewards.forEach(function (r) {
+            var unlocked = points >= r.pts;
+            html += '<div class="loyalty-reward' + (unlocked ? ' unlocked' : '') + '">' +
+                '<div class="r-points">' + r.icon + ' ' + r.pts + '</div>' +
+                '<div class="r-label">' + r.label + '</div></div>';
+        });
+        rewardsEl.innerHTML = html;
+    }
+}
+
+/* === CODES PROMO === */
+function initPromo() {
+    var input = document.getElementById('bk-promo');
+    var msg = document.getElementById('promo-msg');
+    if (!input) return;
+
+    var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+    if (promos.length === 0) {
+        promos = [
+            { code: 'WELCOME10', type: 'percent', value: 10, label: '-10%' },
+            { code: 'ECO20', type: 'percent', value: 20, label: '-20%' },
+            { code: 'FIDELITE', type: 'fixed', value: 500, label: '-500 F' }
+        ];
+        localStorage.setItem('ecowash_promos', JSON.stringify(promos));
+    }
+
+    input.addEventListener('input', function () {
+        var code = input.value.trim().toUpperCase();
+        var found = promos.find(function (p) { return p.code === code; });
+        if (code.length < 3) { msg.textContent = ''; msg.className = 'promo-msg'; return; }
+        if (found) {
+            msg.textContent = 'Code valide ! ' + found.label;
+            msg.className = 'promo-msg valid';
+            input.setAttribute('data-valid', 'true');
+            input.setAttribute('data-discount', found.type === 'percent' ? found.value : found.value);
+            input.setAttribute('data-discount-type', found.type);
+        } else {
+            msg.textContent = 'Code invalide';
+            msg.className = 'promo-msg invalid';
+            input.setAttribute('data-valid', 'false');
+        }
+    });
+}
+
+/* === COOKIES === */
+function initCookies() {
+    var bar = document.getElementById('cookie-bar');
+    if (!bar) return;
+    if (localStorage.getItem('ecowash_cookies') === 'accepted') return;
+    bar.classList.add('show');
+}
+
+function acceptCookies() {
+    var bar = document.getElementById('cookie-bar');
+    if (bar) bar.classList.remove('show');
+    localStorage.setItem('ecowash_cookies', 'accepted');
+}
+
+
 
 

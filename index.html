@@ -182,6 +182,11 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="bk-promo">Code promo (optionnel)</label>
+                    <input type="text" id="bk-promo" placeholder="Entrez votre code">
+                </div>
+                <div id="promo-msg" class="promo-msg"></div>
+                <div class="form-group">
                     <label for="bk-notes">Notes (optionnel)</label>
                     <textarea id="bk-notes" rows="2"></textarea>
                 </div>
@@ -260,7 +265,30 @@
         </div>
     </section>
 
-    <section id="parrainage" class="section bg-light">
+    <section id="blog" class="section">
+        <div class="container">
+            <h2 class="fade-in">Conseils & Astuces</h2>
+            <p class="text-center fade-in">Nos conseils pour entretenir votre véhicule au quotidien</p>
+            <div class="blog-grid fade-in" id="blog-grid"></div>
+        </div>
+    </section>
+
+    <section id="fidelite" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Programme Fidélité</h2>
+            <p class="text-center fade-in">Gagnez des points à chaque lavage et débloquez des récompenses</p>
+            <div class="loyalty-card fade-in" id="loyalty-card">
+                <div style="font-size:2.5rem;margin-bottom:10px">&#127942;</div>
+                <h3>Mes Points</h3>
+                <div class="loyalty-points"><span id="loyalty-points">0</span> <small>pts</small></div>
+                <div class="loyalty-bar"><div class="loyalty-bar-fill" id="loyalty-bar-fill"></div></div>
+                <p style="font-size:.85rem;color:var(--gray)" id="loyalty-next">Prochain palier : 100 pts</p>
+                <div class="loyalty-rewards" id="loyalty-rewards"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="parrainage" class="section">
         <div class="container">
             <h2 class="fade-in">Parrainez vos amis</h2>
             <p class="text-center fade-in">Parrainez un ami et recevez 500 F de réduction sur votre prochain lavage !</p>
@@ -322,9 +350,18 @@
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2026 EcoWash. <span data-i18n="footer.rights">Tous droits réservés.</span></p>
+                <p class="version">v2.0.0</p>
             </div>
         </div>
     </footer>
+
+    <div class="cookie-bar" id="cookie-bar">
+        <span>Ce site utilise des cookies pour améliorer votre expérience. En continuant, vous acceptez notre politique.</span>
+        <div class="cb-actions">
+            <button class="ib-btn ib-btn-close" onclick="acceptCookies()">Refuser</button>
+            <button class="ib-btn ib-btn-install" onclick="acceptCookies()">Accepter</button>
+        </div>
+    </div>
 
     <div class="install-bar" id="install-bar">
         <div class="ib-info">

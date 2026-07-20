@@ -135,11 +135,31 @@
             <button class="tab" onclick="switchTab('reviews',this)">
                 Avis <span class="tab-count" id="rv-count">0</span>
             </button>
+            <button class="tab" onclick="switchTab('calendar',this)">
+                Calendrier
+            </button>
+            <button class="tab" onclick="switchTab('export',this)">
+                Export
+            </button>
         </div>
 
         <div class="tab-content active" id="tab-messages"></div>
         <div class="tab-content" id="tab-bookings"></div>
         <div class="tab-content" id="tab-reviews"></div>
+        <div class="tab-content" id="tab-calendar">
+            <div class="cal-header" id="cal-header"></div>
+            <div class="admin-calendar" id="cal-grid"></div>
+            <div id="cal-events" style="margin-top:15px;font-size:.9rem;color:var(--gray)"></div>
+        </div>
+        <div class="tab-content" id="tab-export">
+            <div style="max-width:400px;margin:0 auto;text-align:center">
+                <p style="margin-bottom:20px;color:var(--gray)">Téléchargez vos données au format CSV</p>
+                <button class="btn" onclick="exportCSV('messages')" style="margin:5px">Messages</button>
+                <button class="btn" onclick="exportCSV('bookings')" style="margin:5px">Rendez-vous</button>
+                <button class="btn" onclick="exportCSV('reviews')" style="margin:5px">Avis clients</button>
+                <button class="btn btn-outline" onclick="exportAll()" style="margin:5px;display:block;width:100%;margin-top:15px">Tout exporter</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/config.js"></script>
@@ -246,11 +266,87 @@
             el.innerHTML = html;
         }
 
+        function renderCalendar() {
+            var grid = document.getElementById('cal-grid');
+            var header = document.getElementById('cal-header');
+            var events = document.getElementById('cal-events');
+            if (!grid) return;
+
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = now.getMonth();
+            var daysInMonth = new Date(y, m + 1, 0).getDate();
+            var firstDay = new Date(y, m, 1).getDay();
+
+            var months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            header.textContent = months[m] + ' ' + y;
+
+            var html = '';
+            ['Di','Lu','Ma','Me','Je','Ve','Sa'].forEach(function (d) { html += '<div class="cal-day" style="font-weight:600">' + d + '</div>'; });
+
+            for (var i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
+
+            for (var day = 1; day <= daysInMonth; day++) {
+                var dateStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                var dayBookings = bookings.filter(function (b) { return b.date === dateStr; });
+                var cls = 'cal-day';
+                if (day === now.getDate() && m === now.getMonth() && y === now.getFullYear()) cls += ' today';
+                if (dayBookings.length > 0) cls += ' has-event';
+                html += '<div class="' + cls + '" onclick="showDayEvents(\'' + dateStr + '\')">' + day + '</div>';
+            }
+            grid.innerHTML = html;
+            events.innerHTML = 'Cliquez sur un jour avec rendez-vous pour voir les détails.';
+        }
+
+        function showDayEvents(dateStr) {
+            var events = document.getElementById('cal-events');
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var dayBks = bookings.filter(function (b) { return b.date === dateStr; });
+            if (dayBks.length === 0) { events.innerHTML = 'Aucun rendez-vous ce jour.'; return; }
+            var html = '<strong>' + dayBks.length + ' rendez-vous le ' + dateStr + '</strong><br><br>';
+            dayBks.forEach(function (b) {
+                html += '<div style="background:var(--white);padding:10px;border-radius:6px;margin-bottom:8px;border-left:3px solid var(--primary)">' +
+                    '<strong>' + esc(b.name) + '</strong> à ' + b.time + '<br>' +
+                    b.vehicle + ' - ' + b.service + '<br>' +
+                    esc(b.address) + ' - ' + b.payment + '</div>';
+            });
+            events.innerHTML = html;
+        }
+
+        function exportCSV(type) {
+            var data = JSON.parse(localStorage.getItem('ecowash_' + type) || '[]');
+            if (data.length === 0) { alert('Aucune donnée à exporter.'); return; }
+            var headers = Object.keys(data[0]);
+            var csv = headers.join(',') + '\n';
+            data.forEach(function (row) {
+                csv += headers.map(function (h) {
+                    var val = (row[h] || '').toString();
+                    if (val.indexOf(',') !== -1 || val.indexOf('"') !== -1) val = '"' + val.replace(/"/g, '""') + '"';
+                    return val;
+                }).join(',') + '\n';
+            });
+            var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'ecowash_' + type + '_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportAll() {
+            exportCSV('messages');
+            setTimeout(function () { exportCSV('bookings'); }, 300);
+            setTimeout(function () { exportCSV('reviews'); }, 600);
+        }
+
         function switchTab(name, btn) {
             document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
             btn.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(function (t) { t.classList.remove('active'); });
             document.getElementById('tab-' + name).classList.add('active');
+            if (name === 'calendar') renderCalendar();
         }
 
         function esc(s) {
