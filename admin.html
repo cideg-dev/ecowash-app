@@ -292,6 +292,7 @@
                     '<div class="meta" id="bk-meta-' + i + '"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
                     '<span>&#128176; ' + esc(b.payment) + '</span></div>' +
                     (b.notes ? '<p>Note: ' + esc(b.notes) + '</p>' : '') +
+                    (b.frequency && b.frequency !== 'une_fois' ? '<p style="font-size:.8rem;color:var(--gray)">&#128260; Récurrent: ' + b.frequency.replace('_',' ') + '</p>' : '') +
                     '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
                     statuses.map(function (s) {
                         var act = s === currentStatus ? ' style="background:var(--primary);color:white;border-color:var(--primary)"' : '';
@@ -299,7 +300,15 @@
                     }).join('') +
                     '<button class="bk-status-btn" onclick="editBooking(' + i + ')" style="background:#3498db;color:white;border:none">✏️ Modifier</button>' +
                     '<button class="bk-status-btn" onclick="deleteItem(\'bookings\',' + i + ')" style="background:#e74c3c;color:white;border:none">🗑 Supprimer</button>' +
-                    '</div></div>';
+                    '</div>' +
+                    '<div style="margin-top:8px;font-size:.8rem">' +
+                    '<label>Prestataire: <select class="provider-select" data-idx="' + i + '" style="padding:4px;border:1px solid var(--border);border-radius:4px;font-size:.8rem">' +
+                    '<option value="">Non assigné</option>' +
+                    (typeof CONFIG !== 'undefined' && CONFIG.providers ? CONFIG.providers.filter(function(p){return p.active}).map(function(p){
+                        var sel = b.provider === p.name ? ' selected' : '';
+                        return '<option value="' + p.name + '"' + sel + '>' + p.name + '</option>';
+                    }).join('') : '') +
+                    '</select></label></div></div>';
             }
             el.innerHTML = html;
 
@@ -311,6 +320,15 @@
                     allBookings[allBookings.length - 1 - idx].status = newStatus;
                     localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
                     renderBookings(JSON.parse(localStorage.getItem('ecowash_bookings') || '[]'));
+                });
+            });
+            el.querySelectorAll('.provider-select').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    var idx = parseInt(this.getAttribute('data-idx'));
+                    var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                    allBookings[allBookings.length - 1 - idx].provider = this.value;
+                    localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
+                    if (typeof showToast === 'function') showToast('Prestataire mis à jour', 'success');
                 });
             });
         }

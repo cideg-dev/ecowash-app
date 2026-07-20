@@ -48,5 +48,14 @@ var CONFIG = {
     products: {
         shippingCost: 1500,
         freeShippingAbove: 30000
+    },
+    providers: [
+        { name: 'Jean', phone: '+229 01 02 03 04', active: true },
+        { name: 'Marie', phone: '+229 05 06 07 08', active: true },
+        { name: 'Paul', phone: '+229 09 10 11 12', active: true }
+    ],
+    recurrence: {
+        options: ['une_fois', 'chaque_semaine', 'toutes_2_semaines', 'chaque_mois'],
+        maxRecurrences: 12
     }
 };

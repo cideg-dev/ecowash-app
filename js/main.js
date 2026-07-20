@@ -97,7 +97,12 @@ function initNav() {
 
 function initTheme() {
     var btn = document.getElementById('theme-toggle');
-    var saved = localStorage.getItem('ecowash_theme') || C.theme?.default || 'light';
+    var saved = localStorage.getItem('ecowash_theme');
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (!saved) {
+        saved = prefersDark ? 'dark' : (C.theme?.default || 'light');
+        localStorage.setItem('ecowash_theme', saved);
+    }
     document.documentElement.setAttribute('data-theme', saved);
     if (btn) {
         btn.textContent = saved === 'dark' ? '\u2600' : '\u{1F319}';
@@ -109,6 +114,17 @@ function initTheme() {
             btn.textContent = next === 'dark' ? '\u2600' : '\u{1F319}';
             var meta = document.querySelector('meta[name="theme-color"]');
             if (meta) meta.setAttribute('content', next === 'dark' ? '#0f0f23' : '#2ecc71');
+        });
+    }
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+            if (!localStorage.getItem('ecowash_theme')) {
+                var theme = e.matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+                if (btn) btn.textContent = theme === 'dark' ? '\u2600' : '\u{1F319}';
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f0f23' : '#2ecc71');
+            }
         });
     }
 }
@@ -259,6 +275,7 @@ function initBooking() {
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
+            var frequency = document.getElementById('bk-frequency');
             var data = {
                 id: 'BK-' + Date.now(),
                 name: document.getElementById('bk-name').value.trim(),
@@ -271,6 +288,7 @@ function initBooking() {
                 payment: document.getElementById('bk-payment').value,
                 notes: document.getElementById('bk-notes').value.trim(),
                 status: 'confirmé',
+                frequency: frequency ? frequency.value : 'une_fois',
                 created: new Date().toISOString()
             };
             if (!data.name || !data.phone || !data.address || !data.date) {
@@ -290,6 +308,11 @@ function initBooking() {
         saveLocal('ecowash_bookings', data);
         localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
         scheduleBookingReminder(data);
+
+        if (data.frequency && data.frequency !== 'une_fois') {
+            generateRecurringBookings(data);
+        }
+
         form.reset();
         currentStep = 1;
         showStep(1);
@@ -1599,15 +1622,18 @@ function updateStepSummary() {
     var time = document.getElementById('bk-time');
     var address = document.getElementById('bk-address');
     var payment = document.getElementById('bk-payment');
+    var frequency = document.getElementById('bk-frequency');
     var svcNames = { simple: 'Simple 1 000 F', complet: 'Complet 2 500 F', premium: 'Premium 4 000 F' };
     var vNames = { citadine: 'Citadine', berline: 'Berline', suv: '4x4/SUV', utilitaire: 'Utilitaire' };
+    var freqLabels = { une_fois: 'Une fois', chaque_semaine: 'Chaque semaine', toutes_2_semaines: 'Toutes les 2 semaines', chaque_mois: 'Chaque mois' };
     el.innerHTML =
         '<strong>Récapitulatif</strong><br><br>' +
         '🚗 ' + (vNames[vehicle?.value] || '—') + '<br>' +
         '📅 ' + (date?.value || '—') + ' à ' + (time?.value || '—') + '<br>' +
         '📍 ' + (address?.value || '—') + '<br>' +
         '🧼 ' + (svcNames[service?.value] || '—') + '<br>' +
-        '💳 ' + (payment?.value || '—');
+        '💳 ' + (payment?.value || '—') + '<br>' +
+        '🔄 ' + (freqLabels[frequency?.value] || '—');
 }
 
 /* === TOAST NOTIFICATIONS === */
@@ -2611,4 +2637,110 @@ function urlBase64ToUint8Array(base64String) {
     }
     return output;
 }
+
+/* === RÉSERVATIONS RÉCURRENTES === */
+function generateRecurringBookings(template) {
+    var intervals = { chaque_semaine: 7, toutes_2_semaines: 14, chaque_mois: 30 };
+    var days = intervals[template.frequency] || 7;
+    var count = Math.min(C.recurrence?.maxRecurrences || 12, 12);
+
+    for (var i = 1; i <= count; i++) {
+        var nextDate = new Date(template.date + 'T12:00:00');
+        nextDate.setDate(nextDate.getDate() + days * i);
+        var nextDateStr = nextDate.toISOString().split('T')[0];
+
+        var recurring = JSON.parse(JSON.stringify(template));
+        recurring.id = 'BK-' + Date.now() + '-' + i;
+        recurring.date = nextDateStr;
+        recurring.status = 'confirmé';
+        recurring.recurringId = template.id;
+        saveLocal('ecowash_bookings', recurring);
+        scheduleBookingReminder(recurring);
+    }
+}
+
+/* === FACTURE PDF === */
+function generatePDFInvoice(data) {
+    var prices = { simple: 1000, complet: 2500, premium: 4000 };
+    var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+    var vNames = { citadine: 'Citadine', berline: 'Berline', suv: '4x4/SUV', utilitaire: 'Utilitaire' };
+    var amount = prices[data.service] || 0;
+    var qty = parseInt(data.quantity) || 1;
+    var total = amount * qty;
+
+    var w = window.open('', '_blank');
+    if (!w) { alert('Veuillez autoriser les pop-ups pour imprimer.'); return; }
+    w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Facture EcoWash</title>' +
+        '<style>' +
+        'body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#333}' +
+        'h1{color:#2ecc71;border-bottom:2px solid #2ecc71;padding-bottom:10px}' +
+        'table{width:100%;border-collapse:collapse;margin:20px 0}' +
+        'th,td{padding:12px;text-align:left;border-bottom:1px solid #ddd}' +
+        'th{background:#f5f5f5}.total{font-size:1.2rem;font-weight:700;text-align:right;margin-top:10px}' +
+        '.footer{margin-top:40px;color:#999;font-size:.8rem;text-align:center}' +
+        '@media print{body{margin:0;padding:15px}.no-print{display:none}}' +
+        '</style></head><body>' +
+        '<h1>EcoWash Bénin</h1>' +
+        '<p><strong>Facture #' + data.id + '</strong><br>' +
+        'Date: ' + new Date().toLocaleString('fr-FR') + '</p>' +
+        '<table><tr><th>Client</th><td>' + data.name + '</td></tr>' +
+        '<tr><th>Téléphone</th><td>' + data.phone + '</td></tr>' +
+        '<tr><th>Adresse</th><td>' + data.address + '</td></tr>' +
+        '<tr><th>Véhicule</th><td>' + (vNames[data.vehicle] || data.vehicle) + '</td></tr>' +
+        '<tr><th>Service</th><td>' + (svcNames[data.service] || data.service) + '</td></tr>' +
+        '<tr><th>Date du service</th><td>' + data.date + ' à ' + data.time + '</td></tr>' +
+        '<tr><th>Paiement</th><td>' + data.payment + '</td></tr>' +
+        (data.transactionId ? '<tr><th>Transaction</th><td>' + data.transactionId + '</td></tr>' : '') +
+        '</table>' +
+        '<div style="text-align:right;font-size:1.2rem;font-weight:700;margin-top:20px">Total: ' + total.toLocaleString() + ' FCFA</div>' +
+        '<div class="footer">EcoWash - Lavage Auto Sans Eau - Merci de votre confiance !</div>' +
+        '<div class="no-print" style="text-align:center;margin-top:30px">' +
+        '<button onclick="window.print()" style="padding:12px 30px;background:#2ecc71;color:white;border:none;border-radius:6px;font-size:1rem;cursor:pointer">&#128424; Imprimer</button>' +
+        '</div></body></html>');
+    w.document.close();
+}
+
+/* === SYNCHRO HORS-LIGNE === */
+function initOfflineSync() {
+    var KEY = 'ecowash_pending_sync';
+    function processQueue() {
+        var queue = JSON.parse(localStorage.getItem(KEY) || '[]');
+        if (!queue.length) return;
+        if (!navigator.onLine) return;
+
+        var remaining = [];
+        queue.forEach(function (item) {
+            try {
+                saveLocal('ecowash_' + item.type, item.data);
+            } catch (e) {
+                remaining.push(item);
+            }
+        });
+        localStorage.setItem(KEY, JSON.stringify(remaining));
+        if (remaining.length === 0 && typeof showToast === 'function') {
+            showToast('✅ Données synchronisées', 'success');
+        }
+    }
+
+    function queueForSync(type, data) {
+        if (!navigator.onLine) {
+            var queue = JSON.parse(localStorage.getItem(KEY) || '[]');
+            queue.push({ type: type, data: data, ts: Date.now() });
+            localStorage.setItem(KEY, JSON.stringify(queue));
+            if (typeof showToast === 'function') {
+                showToast('📡 Hors-ligne - Donnée mise en file d\'attente', 'info');
+            }
+            return true;
+        }
+        return false;
+    }
+
+    window.addEventListener('online', processQueue);
+    window._offlineQueue = { add: queueForSync };
+}
+
+/* === MISE À JOUR DOMContentLoaded === */
+document.addEventListener('DOMContentLoaded', function () {
+    initOfflineSync();
+});
 
