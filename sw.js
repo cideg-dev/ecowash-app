@@ -1,4 +1,4 @@
-const CACHE = 'ecowash-v3';
+const CACHE = 'ecowash-v2.0.0';
 const URLS = [
     '.',
     'index.html',

@@ -1,4 +1,5 @@
 var CONFIG = {
+    version: '2.0.0',
     business: {
         name: 'EcoWash',
         slogan: 'La révolution du lavage auto sans eau en Afrique',
@@ -9,7 +10,7 @@ var CONFIG = {
         currency: { symbol: 'F', code: 'FCFA', locale: 'fr-FR' }
     },
     whatsapp: {
-        number: '229XXXXXXXXX',
+        numbers: ['229XXXXXXXXX', '229XXXXXXXXX'],
         message: 'Bonjour EcoWash Bénin ! J\'ai besoin d\'informations'
     },
     email: {
@@ -60,9 +61,9 @@ var CONFIG = {
         ]
     },
     providers: [
-        { name: 'Jean', phone: '+229 01 02 03 04', active: true },
-        { name: 'Marie', phone: '+229 05 06 07 08', active: true },
-        { name: 'Paul', phone: '+229 09 10 11 12', active: true }
+        { id: 'prov1', name: 'Jean', phone: '+229 01 02 03 04', active: true },
+        { id: 'prov2', name: 'Marie', phone: '+229 05 06 07 08', active: true },
+        { id: 'prov3', name: 'Paul', phone: '+229 09 10 11 12', active: true }
     ],
     recurrence: {
         options: ['une_fois', 'chaque_semaine', 'toutes_2_semaines', 'chaque_mois'],

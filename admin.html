@@ -126,7 +126,7 @@
 
     <div class="container hidden" id="admin-screen">
         <div class="admin-header">
-            <h1>Tableau de bord EcoWash</h1>
+            <h1>Tableau de bord EcoWash <span id="admin-version" style="font-size:.7rem;color:var(--gray);font-weight:400">v2.0.0</span></h1>
             <div style="display:flex;gap:8px;align-items:center">
                 <button onclick="toggleAdminTheme()" id="admin-theme-btn" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:1rem" title="Mode sombre">&#127769;</button>
                 <button onclick="logout()" class="logout-btn">Déconnexion</button>
@@ -260,6 +260,7 @@
                 loggedIn = true;
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('admin-screen').classList.remove('hidden');
+                document.getElementById('admin-version').textContent = 'v' + (CONFIG.version || '2.0.0');
                 loadData();
             } else {
                 document.getElementById('login-error').classList.remove('hidden');
@@ -1125,8 +1126,18 @@
         }
 
         /* === WHATSAPP NOTIFICATIONS === */
-        function sendBookingWhatsApp(booking) {
-            var wp = (typeof CONFIG !== 'undefined' && CONFIG.whatsapp) ? CONFIG.whatsapp : '+22900000000';
+        function getWhatsAppNumbers() {
+            var nums = [];
+            if (typeof CONFIG !== 'undefined' && CONFIG.whatsapp && CONFIG.whatsapp.numbers) {
+                nums = CONFIG.whatsapp.numbers;
+            } else if (typeof CONFIG !== 'undefined' && CONFIG.whatsapp && CONFIG.whatsapp.number) {
+                nums = [CONFIG.whatsapp.number];
+            }
+            return nums.length ? nums : ['22900000000'];
+        }
+        function sendBookingWhatsApp(booking, numIndex) {
+            var nums = getWhatsAppNumbers();
+            var target = (typeof numIndex === 'number' && nums[numIndex]) ? nums[numIndex] : nums[0];
             var msg = '🫧 *EcoWash Bénin* - Confirmation de rendez-vous\n\n'
                 + '👤 Client : ' + (booking.name || '') + '\n'
                 + '📞 Téléphone : ' + (booking.phone || '') + '\n'
@@ -1137,39 +1148,43 @@
                 + '💰 Prix : ' + (booking.price || '') + ' FCFA\n'
                 + (booking.frequency && booking.frequency !== 'Une fois' ? '🔄 Fréquence : ' + booking.frequency + '\n' : '')
                 + '\nMerci de votre confiance 🙏';
-            var url = 'https://wa.me/' + wp.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
+            var url = 'https://wa.me/' + String(target).replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
             window.open(url, '_blank');
-            logActivity('Notification WhatsApp envoyée pour ' + booking.name);
+            logActivity('Notification WhatsApp (n°' + (numIndex != null ? numIndex + 1 : 1) + ') pour ' + booking.name);
         }
-        function sendBookingReminderWhatsApp(booking) {
-            var wp = (typeof CONFIG !== 'undefined' && CONFIG.whatsapp) ? CONFIG.whatsapp : '+22900000000';
+        function sendBookingReminderWhatsApp(booking, numIndex) {
+            var nums = getWhatsAppNumbers();
+            var target = (typeof numIndex === 'number' && nums[numIndex]) ? nums[numIndex] : nums[0];
             var msg = '⏰ *Rappel EcoWash Bénin*\n\nBonjour ' + (booking.name || '') + ',\n'
                 + 'Votre rendez-vous est *demain* à ' + (booking.time || '') + ' pour ' + (booking.service || '') + '.\n'
                 + '📅 ' + (booking.date || '') + '\n\nMerci 🙏';
-            var url = 'https://wa.me/' + wp.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
+            var url = 'https://wa.me/' + String(target).replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
             window.open(url, '_blank');
-            logActivity('Rappel WhatsApp envoyé pour ' + booking.name);
+            logActivity('Rappel WhatsApp (n°' + (numIndex != null ? numIndex + 1 : 1) + ') pour ' + booking.name);
         }
-        /* WhatsApp button in booking cards */
+        /* WhatsApp buttons in booking cards - one per number */
         (function patchBookingsRender() {
             var orig = window.renderBookings;
             if (orig) {
                 window.renderBookings = function () {
                     orig();
                     var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                    var nums = getWhatsAppNumbers();
                     document.querySelectorAll('#tab-bookings .msg-card').forEach(function (card, idx) {
                         var btnGroup = card.querySelector('div[style*="margin-top:10px"]');
                         if (!btnGroup) return;
-                        var wpBtn = document.createElement('button');
-                        wpBtn.innerHTML = '📲';
-                        wpBtn.title = 'Notification WhatsApp';
-                        wpBtn.style.cssText = 'background:#25D366;color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:.8rem';
-                        wpBtn.onclick = function (e) {
-                            e.stopPropagation();
-                            var realIdx = allBookings.length - 1 - idx;
-                            sendBookingWhatsApp(allBookings[realIdx]);
-                        };
-                        btnGroup.prepend(wpBtn);
+                        nums.forEach(function (num, ni) {
+                            var wpBtn = document.createElement('button');
+                            wpBtn.innerHTML = '📲' + (ni + 1);
+                            wpBtn.title = 'WhatsApp n°' + (ni + 1);
+                            wpBtn.style.cssText = 'background:#25D366;color:white;border:none;border-radius:4px;padding:4px 6px;cursor:pointer;font-size:.75rem;margin-right:3px';
+                            wpBtn.onclick = function (e) {
+                                e.stopPropagation();
+                                var realIdx = allBookings.length - 1 - idx;
+                                sendBookingWhatsApp(allBookings[realIdx], ni);
+                            };
+                            btnGroup.prepend(wpBtn);
+                        });
                     });
                 };
             }

@@ -1285,8 +1285,17 @@ function sendBookingEmail(data) {
 }
 
 /* === WHATSAPP NOTIFICATION === */
+function getWhatsAppNumbers() {
+    var nums = [];
+    if (C.whatsapp && C.whatsapp.numbers && C.whatsapp.numbers.length) {
+        nums = C.whatsapp.numbers;
+    } else if (C.whatsapp && C.whatsapp.number) {
+        nums = [C.whatsapp.number];
+    }
+    return nums.length ? nums : ['22900000000'];
+}
 function sendBookingWhatsApp(data) {
-    var wp = C.whatsapp || '+22900000000';
+    var nums = getWhatsAppNumbers();
     var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
     var msg = '🫧 *EcoWash Bénin* - Confirmation de rendez-vous\n\n'
         + '👤 Client : ' + (data.name || '') + '\n'
@@ -1299,8 +1308,11 @@ function sendBookingWhatsApp(data) {
         + '💰 Prix : ' + (data.price || '') + ' FCFA\n'
         + (data.frequency && data.frequency !== 'Une fois' && data.frequency !== 'une_fois' ? '🔄 Fréquence : ' + data.frequency + '\n' : '')
         + '\nMerci de votre confiance 🙏';
-    var url = 'https://wa.me/' + String(wp).replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
-    window.open(url, '_blank');
+    /* Envoyer aux deux numéros (fallback) */
+    nums.forEach(function (num) {
+        var url = 'https://wa.me/' + String(num).replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
+        window.open(url, '_blank');
+    });
 }
 
 /* === LOG ACTIVITY (also used by admin) === */
