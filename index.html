@@ -21,8 +21,10 @@
             <div class="logo">EcoWash</div>
             <ul class="nav-links">
                 <li><a href="#accueil">Accueil</a></li>
-                <li><a href="#produit">Notre Produit</a></li>
-                <li><a href="#avis">Avis Clients</a></li>
+                <li><a href="#produit">Produit</a></li>
+                <li><a href="#tarifs">Tarifs</a></li>
+                <li><a href="#rendezvous">Rendez-vous</a></li>
+                <li><a href="#avis">Avis</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <button class="menu-toggle" aria-label="Menu">&#9776;</button>
@@ -30,34 +32,34 @@
     </header>
 
     <section id="accueil" class="hero">
-        <div class="container">
+        <div class="container fade-in">
             <h1>EcoWash</h1>
             <p class="subtitle">La révolution du lavage auto sans eau en Afrique</p>
             <p class="description">Propre, économique, écologique. Moins de 0,5L d'eau par véhicule.</p>
-            <a href="#contact" class="btn">Devenir client</a>
+            <a href="#rendezvous" class="btn">Réserver un lavage</a>
         </div>
     </section>
 
     <section id="produit" class="section">
         <div class="container">
-            <h2>Notre Produit</h2>
+            <h2 class="fade-in">Notre Produit</h2>
             <div class="features">
-                <div class="card">
+                <div class="card fade-in">
                     <div class="icon">&#128167;</div>
                     <h3>0% Eau</h3>
                     <p>Nettoyage complet sans eau. Formule concentrée spray : 0,3 à 0,5L par véhicule.</p>
                 </div>
-                <div class="card">
+                <div class="card fade-in">
                     <div class="icon">&#127758;</div>
                     <h3>Écologique</h3>
                     <p>Produit biodégradable, respectueux de l'environnement et de la peinture de votre véhicule.</p>
                 </div>
-                <div class="card">
+                <div class="card fade-in">
                     <div class="icon">&#128176;</div>
                     <h3>Économique</h3>
                     <p>Prix populaires entre 1 000 et 2 000 FCFA par lavage. Investissement à partir de 1M FCFA.</p>
                 </div>
-                <div class="card">
+                <div class="card fade-in">
                     <div class="icon">&#128663;</div>
                     <h3>Protection</h3>
                     <p>Formule anti-rayures et restauration de couleur. Fait briller sans risque.</p>
@@ -66,31 +68,187 @@
         </div>
     </section>
 
+    <section id="tarifs" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Nos Tarifs</h2>
+            <div class="pricing">
+                <div class="pricing-card fade-in">
+                    <div class="pricing-header">
+                        <h3>Lavage Simple</h3>
+                        <div class="price">1 500 FCFA</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Nettoyage extérieur complet</li>
+                        <li>Formule spray sans eau</li>
+                        <li>Brillance et protection</li>
+                        <li>Durée : 15 min</li>
+                    </ul>
+                    <a href="#rendezvous" class="btn btn-outline">Choisir</a>
+                </div>
+                <div class="pricing-card featured fade-in">
+                    <div class="pricing-header">
+                        <span class="badge">Populaire</span>
+                        <h3>Lavage Complet</h3>
+                        <div class="price">2 500 FCFA</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Nettoyage extérieur complet</li>
+                        <li>Nettoyage intérieur (sièges, tableau)</li>
+                        <li>Vitres sans traces</br></li>
+                        <li>Restauration couleur</li>
+                        <li>Durée : 30 min</li>
+                    </ul>
+                    <a href="#rendezvous" class="btn">Choisir</a>
+                </div>
+                <div class="pricing-card fade-in">
+                    <div class="pricing-header">
+                        <h3>Lavage Premium</h3>
+                        <div class="price">4 000 FCFA</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Lavage complet extérieur + intérieur</li>
+                        <li>Traitement anti-rayures</li>
+                        <li>Restauration couleur intégrale</li>
+                        <li>Parfum d'habitacle au choix</li>
+                        <li>Durée : 45 min</li>
+                    </ul>
+                    <a href="#rendezvous" class="btn btn-outline">Choisir</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="rendezvous" class="section">
+        <div class="container">
+            <h2 class="fade-in">Prendre Rendez-vous</h2>
+            <p class="text-center fade-in">Choisissez une date et un créneau, nous venons à vous !</p>
+            <form id="booking-form" class="contact-form fade-in">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-name">Nom complet</label>
+                        <input type="text" id="bk-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-phone">Téléphone</label>
+                        <input type="tel" id="bk-phone" name="phone" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-address">Adresse / Lieu</label>
+                        <input type="text" id="bk-address" name="address" placeholder="Où doit-on venir ?" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-vehicle">Type de véhicule</label>
+                        <select id="bk-vehicle" name="vehicle">
+                            <option value="citadine">Citadine</option>
+                            <option value="berline">Berline</option>
+                            <option value="suv">4x4 / SUV</option>
+                            <option value="utilitaire">Utilitaire</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-service">Service</label>
+                        <select id="bk-service" name="service">
+                            <option value="simple">Lavage Simple - 1 500 FCFA</option>
+                            <option value="complet">Lavage Complet - 2 500 FCFA</option>
+                            <option value="premium">Lavage Premium - 4 000 FCFA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-date">Date</label>
+                        <input type="date" id="bk-date" name="date" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bk-time">Créneau</label>
+                        <select id="bk-time" name="time">
+                            <option value="08:00">08h00 - 09h00</option>
+                            <option value="09:00">09h00 - 10h00</option>
+                            <option value="10:00">10h00 - 11h00</option>
+                            <option value="11:00">11h00 - 12h00</option>
+                            <option value="14:00">14h00 - 15h00</option>
+                            <option value="15:00">15h00 - 16h00</option>
+                            <option value="16:00">16h00 - 17h00</option>
+                            <option value="17:00">17h00 - 18h00</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-payment">Paiement</label>
+                        <select id="bk-payment" name="payment">
+                            <option value="orange">Orange Money</option>
+                            <option value="mtn">MTN Mobile Money</option>
+                            <option value="wave">Wave</option>
+                            <option value="especes">Espèces</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bk-notes">Notes (optionnel)</label>
+                    <textarea id="bk-notes" name="notes" rows="2" placeholder="Informations supplémentaires..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-block">Confirmer le rendez-vous</button>
+            </form>
+            <div id="bk-success" class="form-message success hidden">
+                Rendez-vous confirmé ! Nous arriverons à l'heure choisie. Un récapitulatif vous sera envoyé par WhatsApp.
+            </div>
+        </div>
+    </section>
+
     <section id="avis" class="section bg-light">
         <div class="container">
-            <h2>Avis Clients</h2>
+            <h2 class="fade-in">Avis Clients</h2>
             <div class="testimonials" id="testimonials-list">
-                <div class="testimonial">
+                <div class="testimonial fade-in">
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <p>"Excellent produit ! Ma voiture brille comme au premier jour. Je recommande EcoWash à tous mes amis."</p>
                     <span class="author">- Mamadou D.</span>
                 </div>
-                <div class="testimonial">
+                <div class="testimonial fade-in">
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <p>"Fini les longues files d'attente au lavage. EcoWash vient à moi, rapide et efficace."</p>
                     <span class="author">- Fatou S.</span>
                 </div>
-                <div class="testimonial">
+                <div class="testimonial fade-in">
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
                     <p>"Très satisfait du rapport qualité-prix. La peinture de mon véhicule est comme neuve."</p>
                     <span class="author">- Ibrahim K.</span>
                 </div>
+            </div>
+            <div class="add-review fade-in">
+                <h3>Donnez votre avis</h3>
+                <form id="review-form" class="review-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" id="rv-name" placeholder="Votre nom" required>
+                        </div>
+                        <div class="form-group">
+                            <select id="rv-rating">
+                                <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733;</option>
+                                <option value="4">&#9733;&#9733;&#9733;&#9733;</option>
+                                <option value="3">&#9733;&#9733;&#9733;</option>
+                                <option value="2">&#9733;&#9733;</option>
+                                <option value="1">&#9733;</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="rv-message" rows="3" placeholder="Votre message..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn">Publier</button>
+                </form>
             </div>
         </div>
     </section>
 
     <section id="contact" class="section">
         <div class="container">
-            <h2>Contactez-nous</h2>
-            <p class="text-center">Vous avez des questions, des suggestions ou souhaitez devenir client ? Écrivez-nous !</p>
-            <form id="contact-form" class="contact-form">
+            <h2 class="fade-in">Contactez-nous</h2>
+            <p class="text-center fade-in">Vous avez des questions, des suggestions ou souhaitez devenir client ? Écrivez-nous !</p>
+            <form id="contact-form" class="contact-form fade-in">
                 <div class="form-group">
                     <label for="name">Nom complet</label>
                     <input type="text" id="name" name="name" required>
@@ -141,6 +299,10 @@
                     <p>Tél : +225 XX XX XX XX</p>
                 </div>
                 <div class="footer-section">
+                    <h4>Liens</h4>
+                    <p><a href="admin.html" class="footer-link">Administration</a></p>
+                </div>
+                <div class="footer-section">
                     <h4>Suivez-nous</h4>
                     <p>Facebook | Instagram | WhatsApp</p>
                 </div>
@@ -151,6 +313,11 @@
         </div>
     </footer>
 
+    <a href="https://wa.me/225XXXXXXXXX?text=Bonjour%20EcoWash%20!%20J%27ai%20besoin%20d%27informations" target="_blank" class="whatsapp-btn" aria-label="WhatsApp">
+        <svg viewBox="0 0 32 32" fill="white"><path d="M16 0C7.2 0 0 7.2 0 16c0 3 0.8 5.8 2.2 8.2L0 32l8-2.2c2.4 1.4 5.2 2.2 8 2.2 8.8 0 16-7.2 16-16S24.8 0 16 0zM24.4 22.4c-0.4 1-1.8 2-3 2.2-0.8 0.2-1.8 0.2-3-0.4-0.8-0.4-2.2-1.4-3.8-3-1.4-1.4-2.4-2.8-2.8-3.6-0.4-0.8-0.4-1.8-0.2-2.4 0.2-0.6 0.6-1.2 1-1.6 0.4-0.4 0.6-0.6 0.8-0.6 0.4 0 0.6 0 0.8 0 0.2 0 0.4-0.2 0.6 0.4 0.2 0.6 0.6 2 0.6 2.2 0 0.2 0 0.4-0.2 0.6s-0.4 0.4-0.6 0.8c-0.2 0.2-0.4 0.4-0.2 0.8 0.2 0.4 1 1.6 2 2.6 1.2 1.2 2.4 1.6 2.8 1.8 0.4 0.2 0.8 0.2 1 0 0.2-0.2 0.6-0.8 0.8-1 0.2-0.2 0.4-0.4 0.8-0.2s2 1 2.4 1.2c0.4 0.2 0.6 0.4 0.8 0.4 0.2 0.2 0.2 0.6 0 1z"/></svg>
+    </a>
+
+    <script src="js/config.js"></script>
     <script src="js/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

@@ -2,8 +2,10 @@ const CACHE = 'ecowash-v1';
 const URLS = [
     '.',
     'index.html',
+    'admin.html',
     'css/style.css',
     'js/main.js',
+    'js/config.js',
     'manifest.json',
     'images/icon-192.svg',
     'images/icon-512.svg'
