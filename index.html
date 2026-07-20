@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2ecc71">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EcoWash">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="EcoWash">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="images/icon-192.svg" sizes="192x192">
+    <link rel="apple-touch-icon" href="images/icon-512.svg">
+    <title>EcoWash - Lavage Sans Eau</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">EcoWash</div>
+            <ul class="nav-links">
+                <li><a href="#accueil">Accueil</a></li>
+                <li><a href="#produit">Notre Produit</a></li>
+                <li><a href="#avis">Avis Clients</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+        </nav>
+    </header>
+
+    <section id="accueil" class="hero">
+        <div class="container">
+            <h1>EcoWash</h1>
+            <p class="subtitle">La révolution du lavage auto sans eau en Afrique</p>
+            <p class="description">Propre, économique, écologique. Moins de 0,5L d'eau par véhicule.</p>
+            <a href="#contact" class="btn">Devenir client</a>
+        </div>
+    </section>
+
+    <section id="produit" class="section">
+        <div class="container">
+            <h2>Notre Produit</h2>
+            <div class="features">
+                <div class="card">
+                    <div class="icon">&#128167;</div>
+                    <h3>0% Eau</h3>
+                    <p>Nettoyage complet sans eau. Formule concentrée spray : 0,3 à 0,5L par véhicule.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#127758;</div>
+                    <h3>Écologique</h3>
+                    <p>Produit biodégradable, respectueux de l'environnement et de la peinture de votre véhicule.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#128176;</div>
+                    <h3>Économique</h3>
+                    <p>Prix populaires entre 1 000 et 2 000 FCFA par lavage. Investissement à partir de 1M FCFA.</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#128663;</div>
+                    <h3>Protection</h3>
+                    <p>Formule anti-rayures et restauration de couleur. Fait briller sans risque.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="avis" class="section bg-light">
+        <div class="container">
+            <h2>Avis Clients</h2>
+            <div class="testimonials" id="testimonials-list">
+                <div class="testimonial">
+                    <p>"Excellent produit ! Ma voiture brille comme au premier jour. Je recommande EcoWash à tous mes amis."</p>
+                    <span class="author">- Mamadou D.</span>
+                </div>
+                <div class="testimonial">
+                    <p>"Fini les longues files d'attente au lavage. EcoWash vient à moi, rapide et efficace."</p>
+                    <span class="author">- Fatou S.</span>
+                </div>
+                <div class="testimonial">
+                    <p>"Très satisfait du rapport qualité-prix. La peinture de mon véhicule est comme neuve."</p>
+                    <span class="author">- Ibrahim K.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="section">
+        <div class="container">
+            <h2>Contactez-nous</h2>
+            <p class="text-center">Vous avez des questions, des suggestions ou souhaitez devenir client ? Écrivez-nous !</p>
+            <form id="contact-form" class="contact-form">
+                <div class="form-group">
+                    <label for="name">Nom complet</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Téléphone</label>
+                    <input type="tel" id="phone" name="phone">
+                </div>
+                <div class="form-group">
+                    <label for="subject">Sujet</label>
+                    <select id="subject" name="subject">
+                        <option value="info">Demande d'information</option>
+                        <option value="devis">Devenir client</option>
+                        <option value="feedback">Suggestion / Feedback</option>
+                        <option value="reclamation">Réclamation</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-block">Envoyer</button>
+            </form>
+            <div id="form-success" class="form-message success hidden">
+                Merci pour votre message ! Nous vous répondrons dans les plus brefs délais.
+            </div>
+            <div id="form-error" class="form-message error hidden">
+                Une erreur est survenue. Veuillez réessayer.
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>EcoWash</h4>
+                    <p>Lavage auto sans eau, écologique et économique.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Email : contact@ecowash.africa</p>
+                    <p>Tél : +225 XX XX XX XX</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Suivez-nous</h4>
+                    <p>Facebook | Instagram | WhatsApp</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 EcoWash. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
