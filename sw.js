@@ -1,16 +1,17 @@
-const CACHE = 'ecowash-v1';
-const CACHE = 'ecowash-v2';
+const CACHE = 'ecowash-v3';
 const URLS = [
     '.',
     'index.html',
     'admin.html',
     'produits.html',
+    '404.html',
     'css/style.css',
     'js/main.js',
     'js/config.js',
     'js/i18n.js',
     'js/cart.js',
     'manifest.json',
+    'sitemap.xml',
     'images/icon-192.svg',
     'images/icon-512.svg'
 ];
@@ -31,6 +32,10 @@ self.addEventListener('activate', function (e) {
                 keys.filter(function (k) { return k !== CACHE; })
                     .map(function (k) { return caches.delete(k); })
             );
+        }).then(function () {
+            return self.clients.matchAll().then(function (clients) {
+                clients.forEach(function (c) { c.postMessage({ type: 'SW_UPDATED' }); });
+            });
         })
     );
     self.clients.claim();
@@ -49,7 +54,33 @@ self.addEventListener('fetch', function (e) {
                 });
             });
         }).catch(function () {
-            return caches.match('/');
+            return caches.match('index.html');
+        })
+    );
+});
+
+self.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'SCHEDULE_NOTIFICATION') {
+        var d = e.data.payload;
+        var delay = new Date(d.date + 'T' + d.time).getTime() - Date.now() - 3600000;
+        if (delay < 0) delay = 5000;
+        setTimeout(function () {
+            self.registration.showNotification('EcoWash - Rappel', {
+                body: 'Rappel : ' + d.name + ', votre ' + d.service + ' est dans 1 heure !',
+                icon: 'images/icon-192.svg',
+                tag: 'remind-' + d.id,
+                vibrate: [200, 100, 200]
+            });
+        }, delay);
+    }
+});
+
+self.addEventListener('notificationclick', function (e) {
+    e.notification.close();
+    e.waitUntil(
+        clients.matchAll({ type: 'window' }).then(function (cls) {
+            if (cls.length) { cls[0].focus(); }
+            else { clients.openWindow('/'); }
         })
     );
 });

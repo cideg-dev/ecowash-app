@@ -89,6 +89,8 @@
         }
         .stat-card .num { font-size: 2rem; font-weight: 700; color: var(--primary-dark); }
         .stat-card .label { color: var(--gray); font-size: .9rem; }
+        .chart-wrap { background: var(--white); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .chart-wrap canvas { width: 100% !important; height: auto !important; max-height: 250px; }
         .bk-status {
             display: inline-block;
             padding: 3px 12px;
@@ -138,6 +140,12 @@
             <button class="tab" onclick="switchTab('calendar',this)">
                 Calendrier
             </button>
+            <button class="tab" onclick="switchTab('analytics',this)">
+                Analytics
+            </button>
+            <button class="tab" onclick="switchTab('customers',this)">
+                Clients
+            </button>
             <button class="tab" onclick="switchTab('export',this)">
                 Export
             </button>
@@ -150,6 +158,22 @@
             <div class="cal-header" id="cal-header"></div>
             <div class="admin-calendar" id="cal-grid"></div>
             <div id="cal-events" style="margin-top:15px;font-size:.9rem;color:var(--gray)"></div>
+        </div>
+        <div class="tab-content" id="tab-analytics">
+            <div class="chart-wrap">
+                <h3 style="margin-bottom:15px">Rendez-vous par jour (ce mois)</h3>
+                <canvas id="chart-canvas" height="250"></canvas>
+            </div>
+            <div class="chart-wrap">
+                <h3 style="margin-bottom:15px">Répartition des services</h3>
+                <div id="service-pie" style="display:flex;flex-wrap:wrap;gap:15px;justify-content:center"></div>
+            </div>
+        </div>
+        <div class="tab-content" id="tab-customers">
+            <div style="margin-bottom:15px">
+                <input type="text" id="customer-search" placeholder="Rechercher un client..." style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:.95rem">
+            </div>
+            <div id="customer-list"></div>
         </div>
         <div class="tab-content" id="tab-export">
             <div style="max-width:400px;margin:0 auto;text-align:center">
@@ -187,6 +211,7 @@
         }
 
         function loadData() {
+            autoFillPromos();
             var messages = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
             var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
             var reviews = JSON.parse(localStorage.getItem('ecowash_reviews') || '[]');
@@ -347,6 +372,131 @@
             document.querySelectorAll('.tab-content').forEach(function (t) { t.classList.remove('active'); });
             document.getElementById('tab-' + name).classList.add('active');
             if (name === 'calendar') renderCalendar();
+            if (name === 'analytics') renderAnalytics();
+            if (name === 'customers') renderCustomers();
+        }
+
+        function renderAnalytics() {
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var canvas = document.getElementById('chart-canvas');
+            if (!canvas) return;
+
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = now.getMonth();
+            var daysInMonth = new Date(y, m + 1, 0).getDate();
+
+            var dayCounts = [];
+            for (var d = 1; d <= daysInMonth; d++) {
+                var ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                dayCounts.push(bookings.filter(function (b) { return b.date === ds; }).length);
+            }
+
+            var ctx = canvas.getContext('2d');
+            var W = canvas.width = canvas.parentElement.offsetWidth || 600;
+            var H = canvas.height = 250;
+            var pad = { t: 20, r: 15, b: 30, l: 40 };
+            var chartW = W - pad.l - pad.r;
+            var chartH = H - pad.t - pad.b;
+            var maxVal = Math.max(1, Math.max.apply(null, dayCounts));
+            var barW = chartW / daysInMonth * 0.7;
+            var gap = chartW / daysInMonth * 0.3;
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#666';
+            ctx.font = '11px system-ui';
+            for (var i = 0; i <= 4; i++) {
+                var yVal = Math.round((maxVal / 4) * i);
+                var yPos = pad.t + chartH - (chartH / 4) * i;
+                ctx.fillText(yVal, 5, yPos + 4);
+                ctx.strokeStyle = '#eee';
+                ctx.beginPath();
+                ctx.moveTo(pad.l - 5, yPos);
+                ctx.lineTo(W - pad.r, yPos);
+                ctx.stroke();
+            }
+
+            for (var d = 0; d < dayCounts.length; d++) {
+                var x = pad.l + (chartW / daysInMonth) * d + gap / 2;
+                var barH = (dayCounts[d] / maxVal) * chartH;
+                ctx.fillStyle = '#2ecc71';
+                ctx.roundRect ? ctx.roundRect(x, pad.t + chartH - barH, barW, barH, [3,3,0,0]) : null;
+                if (ctx.roundRect) { ctx.fill(); }
+                else { ctx.fillRect(x, pad.t + chartH - barH, barW, barH); }
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.fillText(d + 1, x + barW / 2, H - 8);
+            }
+
+            /* Service pie chart */
+            var pieEl = document.getElementById('service-pie');
+            var svcCounts = {};
+            bookings.forEach(function (b) {
+                svcCounts[b.service] = (svcCounts[b.service] || 0) + 1;
+            });
+            var labels = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
+            var colors = { simple: '#2ecc71', complet: '#3498db', premium: '#e67e22' };
+            var total = bookings.length || 1;
+            var pieHtml = '';
+            for (var s in svcCounts) {
+                var pct = Math.round((svcCounts[s] / total) * 100);
+                pieHtml += '<div style="text-align:center;min-width:100px">' +
+                    '<div style="width:60px;height:60px;border-radius:50%;background:' + (colors[s] || '#999') + ';margin:0 auto 6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1.1rem">' + pct + '%</div>' +
+                    '<div style="font-size:.85rem;color:var(--gray)">' + (labels[s] || s) + ' (' + svcCounts[s] + ')</div></div>';
+            }
+            pieEl.innerHTML = pieHtml;
+        }
+
+        function renderCustomers() {
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var messages = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
+
+            var customerMap = {};
+            bookings.forEach(function (b) {
+                var key = (b.phone || b.name).toLowerCase().replace(/\s/g, '');
+                if (!customerMap[key]) customerMap[key] = { name: b.name, phone: b.phone || '', bookings: 0, services: [], lastDate: '' };
+                customerMap[key].bookings++;
+                if (customerMap[key].services.indexOf(b.service) === -1) customerMap[key].services.push(b.service);
+                if (b.date > customerMap[key].lastDate) customerMap[key].lastDate = b.date;
+            });
+
+            var list = Object.keys(customerMap).map(function (k) { return customerMap[k]; });
+            list.sort(function (a, b) { return b.bookings - a.bookings; });
+
+            var searchEl = document.getElementById('customer-search');
+            function filterList() {
+                var q = (searchEl.value || '').toLowerCase();
+                var filtered = list.filter(function (c) { return c.name.toLowerCase().indexOf(q) !== -1 || c.phone.indexOf(q) !== -1; });
+                var html = '<div class="empty-msg" ' + (filtered.length ? 'style="display:none"' : '') + '>Aucun client trouvé.</div>';
+                filtered.forEach(function (c) {
+                    html += '<div class="msg-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">' +
+                        '<div><strong>' + esc(c.name) + '</strong>' + (c.phone ? '<br><span style="font-size:.85rem;color:var(--gray)">' + c.phone + '</span>' : '') + '</div>' +
+                        '<div style="text-align:right;font-size:.9rem">' +
+                        '<span style="color:var(--primary-dark);font-weight:600">' + c.bookings + '</span> lavage(s)<br>' +
+                        '<span style="color:var(--gray);font-size:.8rem">Dernier: ' + c.lastDate + '</span></div></div>';
+                });
+                document.getElementById('customer-list').innerHTML = html;
+            }
+
+            searchEl.addEventListener('input', filterList);
+            filterList();
+        }
+
+        /* === AUTO-FILL PROMOS DEPUIS RÉSERVATIONS === */
+        function autoFillPromos() {
+            var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            if (bookings.length < 3) return;
+            var promos = JSON.parse(localStorage.getItem('ecowash_promos') || '[]');
+            var existing = promos.map(function (p) { return p.code; });
+            var newCodes = [];
+            if (existing.indexOf('REGULIER10') === -1) newCodes.push({ code: 'REGULIER10', type: 'percent', value: 10, label: '-10% abonné' });
+            if (existing.indexOf('PARRAIN') === -1) newCodes.push({ code: 'PARRAIN', type: 'percent', value: 15, label: '-15% parrainage' });
+            if (existing.indexOf('FIDELITE') === -1) newCodes.push({ code: 'FIDELITE', type: 'fixed', value: 500, label: '-500 F' });
+            if (bookings.length >= 10 && existing.indexOf('VIP20') === -1) newCodes.push({ code: 'VIP20', type: 'percent', value: 20, label: '-20% VIP' });
+            if (newCodes.length) {
+                promos = promos.concat(newCodes);
+                localStorage.setItem('ecowash_promos', JSON.stringify(promos));
+            }
         }
 
         function esc(s) {

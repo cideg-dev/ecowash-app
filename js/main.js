@@ -236,6 +236,7 @@ function initBooking() {
             }
             saveLocal('ecowash_bookings', data);
             localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
+            scheduleBookingReminder(data);
             form.reset();
             if (success) {
                 success.classList.remove('hidden');
@@ -829,6 +830,123 @@ function acceptCookies() {
     if (bar) bar.classList.remove('show');
     localStorage.setItem('ecowash_cookies', 'accepted');
 }
+
+/* === PARTAGE APP === */
+function shareApp() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'EcoWash - Lavage Sans Eau',
+            text: 'Découvrez EcoWash : lavage auto sans eau, écologique et économique en Afrique !',
+            url: window.location.href
+        }).catch(function () {});
+    } else {
+        var input = document.createElement('input');
+        input.value = window.location.href;
+        document.body.appendChild(input);
+        input.select();
+        try { document.execCommand('copy'); alert('Lien copié ! Partagez-le à vos amis.'); } catch(e) {}
+        document.body.removeChild(input);
+    }
+}
+
+/* === AUTO-SAVE FORMULAIRE === */
+function initAutoSave() {
+    var form = document.getElementById('booking-form');
+    if (!form) return;
+    var saved = localStorage.getItem('ecowash_booking_draft');
+    if (saved) {
+        try {
+            var data = JSON.parse(saved);
+            ['bk-name','bk-phone','bk-address','bk-vehicle','bk-service','bk-date','bk-time','bk-payment','bk-notes','bk-promo'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el && data[id]) {
+                    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') el.value = data[id];
+                    else if (el.tagName === 'SELECT') el.value = data[id];
+                }
+            });
+        } catch(e) {}
+    }
+    form.addEventListener('input', function () {
+        var data = {};
+        ['bk-name','bk-phone','bk-address','bk-vehicle','bk-service','bk-date','bk-time','bk-payment','bk-notes','bk-promo'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) data[id] = el.value;
+        });
+        localStorage.setItem('ecowash_booking_draft', JSON.stringify(data));
+    });
+    form.addEventListener('submit', function () {
+        localStorage.removeItem('ecowash_booking_draft');
+    });
+}
+
+/* === SW MISE À JOUR === */
+function initSWUpdate() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+        showUpdateBar();
+    });
+    navigator.serviceWorker.addEventListener('message', function (e) {
+        if (e.data && e.data.type === 'SW_UPDATED') showUpdateBar();
+    });
+}
+
+function showUpdateBar() {
+    var bar = document.getElementById('notif-bar');
+    if (bar) {
+        bar.textContent = '🔁 Nouvelle version disponible. Cliquez pour mettre à jour.';
+        bar.classList.add('show');
+        bar.style.cursor = 'pointer';
+        bar.onclick = function () { location.reload(); };
+    }
+}
+
+/* === RAPPEL RENDEZ-VOUS VIA SW === */
+function scheduleBookingReminder(data) {
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    navigator.serviceWorker.ready.then(function (reg) {
+        reg.showNotification('EcoWash - Rendez-vous confirmé', {
+            body: data.name + ', votre rendez-vous ' + data.service + ' est confirmé pour le ' + data.date + ' à ' + data.time + '.',
+            icon: 'images/icon-192.svg',
+            tag: 'booking-' + data.id,
+            requireInteraction: true
+        });
+        reg.active.postMessage({
+            type: 'SCHEDULE_NOTIFICATION',
+            payload: { id: data.id, name: data.name, service: data.service, date: data.date, time: data.time }
+        });
+    });
+}
+
+/* === ADMIN SOND === */
+function initAdminSound() {
+    var lastCount = parseInt(localStorage.getItem('ecowash_last_msg_count') || '0');
+    setInterval(function () {
+        var msgs = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
+        if (msgs.length > lastCount) {
+            lastCount = msgs.length;
+            localStorage.setItem('ecowash_last_msg_count', String(lastCount));
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 800;
+                gain.gain.value = 0.1;
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch(e) {}
+        }
+    }, 10000);
+}
+
+/* === mettre à jour DOMContentLoaded === */
+document.addEventListener('DOMContentLoaded', function () {
+    initAutoSave();
+    initSWUpdate();
+    initAdminSound();
+});
 
 
 
