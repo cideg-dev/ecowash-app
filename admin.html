@@ -101,6 +101,10 @@
         .bk-status.confirmed { background: #d4edda; color: #155724; }
         .bk-status.pending { background: #fff3cd; color: #856404; }
         .bk-status.done { background: #cce5ff; color: #004085; }
+        .bk-status.en_cours { background: #cce5ff; color: #004085; }
+        .bk-status.terminé { background: #d4edda; color: #155724; }
+        .bk-status.annulé { background: #f8d7da; color: #721c24; }
+        .bk-status-btn { border: 1px solid #ddd; background: var(--white); border-radius: 6px; padding: 4px 12px; font-size: .78rem; cursor: pointer; color: var(--text); }
         @media (max-width: 768px) {
             .admin-header { flex-direction: column; gap: 15px; }
         }
@@ -259,8 +263,11 @@
             var html = '';
             for (var i = list.length - 1; i >= 0; i--) {
                 var b = list[i];
+                var statuses = ['confirmé', 'en_cours', 'terminé', 'annulé'];
+                var statusLabels = { confirmé: 'Confirmé', en_cours: 'En cours', terminé: 'Terminé', annulé: 'Annulé' };
+                var currentStatus = b.status || 'confirmé';
                 var serviceNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
-                html += '<div class="msg-card"><h3>' + esc(b.name) + ' <span class="bk-status confirmed">Confirmé</span></h3>' +
+                html += '<div class="msg-card"><h3>' + esc(b.name) + ' <span class="bk-status ' + currentStatus + '">' + (statusLabels[currentStatus] || 'Confirmé') + '</span></h3>' +
                     '<div class="meta"><span>&#9742; ' + esc(b.phone) + '</span>' +
                     '<span>&#128205; ' + esc(b.address) + '</span></div>' +
                     '<div class="meta"><span>&#128663; ' + esc(b.vehicle) + '</span>' +
@@ -268,9 +275,25 @@
                     '<div class="meta"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
                     '<span>&#128176; ' + esc(b.payment) + '</span></div>' +
                     (b.notes ? '<p>Note: ' + esc(b.notes) + '</p>' : '') +
-                    '</div>';
+                    '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
+                    statuses.map(function (s) {
+                        var act = s === currentStatus ? ' style="background:var(--primary);color:white;border-color:var(--primary)"' : '';
+                        return '<button class="bk-status-btn" data-idx="' + i + '" data-status="' + s + '"' + act + '>' + (statusLabels[s] || s) + '</button>';
+                    }).join('') +
+                    '</div></div>';
             }
             el.innerHTML = html;
+
+            el.querySelectorAll('.bk-status-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var idx = parseInt(this.getAttribute('data-idx'));
+                    var newStatus = this.getAttribute('data-status');
+                    var allBookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                    allBookings[allBookings.length - 1 - idx].status = newStatus;
+                    localStorage.setItem('ecowash_bookings', JSON.stringify(allBookings));
+                    renderBookings(JSON.parse(localStorage.getItem('ecowash_bookings') || '[]'));
+                });
+            });
         }
 
         function renderReviews(list) {

@@ -42,6 +42,7 @@
                 <button class="cart-btn" id="cart-btn" aria-label="Panier">
                     &#128722; <span class="cart-badge" id="cart-badge">0</span>
                 </button>
+                <button class="account-btn" id="account-btn" aria-label="Mon compte" onclick="openClientDashboard()">&#128100;</button>
                 <button class="menu-toggle" aria-label="Menu">&#9776;</button>
             </div>
         </nav>
@@ -349,6 +350,7 @@
                     <h4>Liens</h4>
                     <p><a href="produits.html" class="footer-link">Catalogue produits</a></p>
                     <p><a href="admin.html" class="footer-link">Administration</a></p>
+                    <p><a href="#" onclick="openClientDashboard();return false" class="footer-link">Mon compte</a></p>
                     <p><a href="#" id="footer-invoice-link" class="footer-link">Ma facture</a></p>
                 </div>
                 <div class="footer-section">
@@ -363,6 +365,35 @@
             </div>
         </div>
     </footer>
+
+    <div class="modal-overlay" id="client-modal" onclick="closeClientDashboard(event)">
+        <div class="modal-content" style="max-width:600px">
+            <div class="modal-header">
+                <h2>Mon compte EcoWash</h2>
+                <button class="chat-close" onclick="closeClientDashboard()">&times;</button>
+            </div>
+            <div id="client-login">
+                <div class="form-group">
+                    <label for="client-phone">Votre numéro de téléphone</label>
+                    <input type="tel" id="client-phone" placeholder="+225 XX XX XX XX">
+                </div>
+                <button class="btn btn-block" onclick="clientLogin()">Accéder à mon compte</button>
+                <p id="client-login-error" class="hidden" style="color:#e74c3c;font-size:.85rem;margin-top:10px;text-align:center"></p>
+            </div>
+            <div id="client-dashboard" class="hidden">
+                <div class="stats-grid" id="client-stats" style="margin-bottom:20px"></div>
+                <h3 style="margin-bottom:10px">Mes badges</h3>
+                <div id="client-badges" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px"></div>
+                <h3 style="margin-bottom:10px">Mon historique</h3>
+                <div id="client-history"></div>
+                <div style="margin-top:20px;padding-top:15px;border-top:1px solid #eee;display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="btn btn-outline" onclick="shareReferral()">📤 Parrainer</button>
+                    <button class="btn btn-outline" onclick="viewInvoices()">📄 Mes factures</button>
+                    <button class="btn btn-outline" onclick="clientLogout()">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="cookie-bar" id="cookie-bar">
         <span>Ce site utilise des cookies pour améliorer votre expérience. En continuant, vous acceptez notre politique.</span>

@@ -946,7 +946,213 @@ document.addEventListener('DOMContentLoaded', function () {
     initAutoSave();
     initSWUpdate();
     initAdminSound();
+    initBookingAvailability();
+    initPriceCalculator();
+    initProductSearch();
+    scheduleServiceReminder();
 });
+
+/* === ESPACE CLIENT === */
+function openClientDashboard() {
+    var modal = document.getElementById('client-modal');
+    if (!modal) return;
+    modal.classList.add('show');
+    var phone = localStorage.getItem('ecowash_client_phone');
+    if (phone) {
+        document.getElementById('client-login').classList.add('hidden');
+        document.getElementById('client-dashboard').classList.remove('hidden');
+        renderClientDashboard(phone);
+    } else {
+        document.getElementById('client-login').classList.remove('hidden');
+        document.getElementById('client-dashboard').classList.add('hidden');
+    }
+}
+
+function closeClientDashboard(e) {
+    if (e && e.target !== e.currentTarget) return;
+    var modal = document.getElementById('client-modal');
+    if (modal) modal.classList.remove('show');
+}
+
+function clientLogin() {
+    var phone = document.getElementById('client-phone').value.trim();
+    if (!phone || phone.length < 6) {
+        document.getElementById('client-login-error').textContent = 'Entrez un numéro valide.';
+        document.getElementById('client-login-error').classList.remove('hidden');
+        return;
+    }
+    localStorage.setItem('ecowash_client_phone', phone);
+    document.getElementById('client-login').classList.add('hidden');
+    document.getElementById('client-dashboard').classList.remove('hidden');
+    renderClientDashboard(phone);
+}
+
+function clientLogout() {
+    localStorage.removeItem('ecowash_client_phone');
+    document.getElementById('client-dashboard').classList.add('hidden');
+    document.getElementById('client-login').classList.remove('hidden');
+    document.getElementById('client-phone').value = '';
+}
+
+function renderClientDashboard(phone) {
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var myBookings = bookings.filter(function (b) { return b.phone === phone; });
+    var points = myBookings.length * 50;
+    try { points += parseInt(localStorage.getItem('ecowash_extra_points') || '0'); } catch(e) {}
+
+    document.getElementById('client-stats').innerHTML =
+        '<div class="stat-card"><div class="num">' + myBookings.length + '</div><div class="label">Lavages</div></div>' +
+        '<div class="stat-card"><div class="num">' + points + '</div><div class="label">Points</div></div>' +
+        '<div class="stat-card"><div class="num">' + getBadges(myBookings.length).length + '</div><div class="label">Badges</div></div>';
+
+    var badges = getBadges(myBookings.length);
+    var badgesHtml = '';
+    badges.forEach(function (b) {
+        badgesHtml += '<div style="text-align:center;min-width:70px"><div style="font-size:2rem">' + b.icon + '</div><div style="font-size:.7rem;color:var(--gray)">' + b.label + '</div></div>';
+    });
+    if (!badges.length) badgesHtml = '<div style="color:var(--gray);font-size:.85rem">Pas encore de badges. Réservez vos premiers lavages !</div>';
+    document.getElementById('client-badges').innerHTML = badgesHtml;
+
+    var hist = document.getElementById('client-history');
+    if (!myBookings.length) {
+        hist.innerHTML = '<div class="empty-msg">Aucun lavage effectué pour le moment.</div>';
+        return;
+    }
+    var html = '';
+    for (var i = myBookings.length - 1; i >= 0; i--) {
+        var b = myBookings[i];
+        var svcNames = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
+        html += '<div class="msg-card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+            '<div><strong>' + b.date + ' à ' + b.time + '</strong><br><span style="font-size:.85rem;color:var(--gray)">' +
+            (svcNames[b.service] || b.service) + ' - ' + b.vehicle + '</span></div>' +
+            '<span class="bk-status ' + (b.status || 'confirmed') + '">' + (b.status || 'Confirmé') + '</span></div>';
+    }
+    hist.innerHTML = html;
+}
+
+function getBadges(numBookings) {
+    var badges = [];
+    var allBadges = [
+        { min: 1, icon: '🧽', label: 'Premier lavage' },
+        { min: 3, icon: '🌟', label: 'Régulier' },
+        { min: 5, icon: '🏆', label: 'Expert' },
+        { min: 10, icon: '👑', label: 'VIP' },
+        { min: 25, icon: '💎', label: 'Légende' }
+    ];
+    allBadges.forEach(function (b) {
+        if (numBookings >= b.min) badges.push(b);
+    });
+    var referralCount = parseInt(localStorage.getItem('ecowash_referral_count') || '0');
+    if (referralCount >= 1) badges.push({ icon: '🤝', label: 'Parrain' });
+    if (referralCount >= 3) badges.push({ icon: '📣', label: 'Ambassadeur' });
+    return badges;
+}
+
+function viewInvoices() {
+    var phone = localStorage.getItem('ecowash_client_phone');
+    if (!phone) { alert('Connectez-vous d\'abord.'); return; }
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var myBookings = bookings.filter(function (b) { return b.phone === phone; });
+    if (!myBookings.length) { alert('Aucune facture disponible.'); return; }
+    var data = myBookings[myBookings.length - 1];
+    generateInvoice(data);
+}
+
+/* === DISPONIBILITÉ CRÉNEAUX === */
+function initBookingAvailability() {
+    var dateInput = document.getElementById('bk-date');
+    var timeSelect = document.getElementById('bk-time');
+    if (!dateInput || !timeSelect) return;
+
+    function updateSlots() {
+        var date = dateInput.value;
+        if (!date) return;
+        var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+        var dayBks = bookings.filter(function (b) { return b.date === date; });
+        var takenSlots = {};
+        dayBks.forEach(function (b) { takenSlots[b.time] = true; });
+        var options = timeSelect.querySelectorAll('option');
+        options.forEach(function (opt) {
+            if (opt.value && takenSlots[opt.value]) {
+                opt.disabled = true;
+                opt.textContent = opt.value + ' ❌';
+            } else if (opt.value) {
+                opt.disabled = false;
+                opt.textContent = opt.value;
+            }
+        });
+    }
+
+    dateInput.addEventListener('change', updateSlots);
+    updateSlots();
+}
+
+/* === CALCULATEUR DE PRIX === */
+function initPriceCalculator() {
+    var vehicle = document.getElementById('bk-vehicle');
+    var service = document.getElementById('bk-service');
+    var display = document.getElementById('bk-price-display');
+    if (!vehicle || !service) return;
+
+    if (!display) {
+        display = document.createElement('div');
+        display.id = 'bk-price-display';
+        display.style.cssText = 'margin-top:10px;font-size:1.1rem;font-weight:600;color:var(--primary-dark);text-align:center';
+        service.parentElement.appendChild(display);
+    }
+
+    function updatePrice() {
+        var v = vehicle.value;
+        var s = service.value;
+        var prices = { simple: { voiture: 1000, utilitaire: 1500, moto: 500 }, complet: { voiture: 2000, utilitaire: 3000, moto: 1000 }, premium: { voiture: 3500, utilitaire: 5000, moto: 2000 } };
+        if (prices[s] && prices[s][v]) {
+            display.textContent = '💰 Estimation : ' + formatPrice(prices[s][v]);
+        } else {
+            display.textContent = '';
+        }
+    }
+
+    vehicle.addEventListener('change', updatePrice);
+    service.addEventListener('change', updatePrice);
+    updatePrice();
+}
+
+/* === RAPPEL SERVICE (2 SEMAINES) === */
+function scheduleServiceReminder() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    if (!bookings.length) return;
+    var last = bookings[bookings.length - 1];
+    var lastDate = new Date(last.date + 'T' + (last.time || '12:00'));
+    var twoWeeks = 14 * 24 * 60 * 60 * 1000;
+    var elapsed = Date.now() - lastDate.getTime();
+    var reminded = localStorage.getItem('ecowash_reminded_2w');
+    if (elapsed >= twoWeeks && reminded !== last.date) {
+        setTimeout(function () {
+            if (Notification.permission === 'granted') {
+                new Notification('EcoWash - Ça fait 2 semaines !', {
+                    body: 'Votre dernier lavage remonte au ' + last.date + '. Envie d\'une nouvelle session ?',
+                    icon: 'images/icon-192.svg'
+                });
+                localStorage.setItem('ecowash_reminded_2w', last.date);
+            }
+        }, 5000);
+    }
+}
+
+/* === RECHERCHE PRODUITS === */
+function initProductSearch() {
+    var input = document.getElementById('product-search');
+    if (!input) return;
+    input.addEventListener('input', function () {
+        var q = input.value.toLowerCase().trim();
+        var cards = document.querySelectorAll('.product-card, .product-item');
+        cards.forEach(function (card) {
+            var text = card.textContent.toLowerCase();
+            card.style.display = (!q || text.indexOf(q) !== -1) ? '' : 'none';
+        });
+    });
+}
 
 
 
