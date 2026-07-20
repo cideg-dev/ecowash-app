@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initGiftCard();
     initReviewPhoto();
     initMultiVehiclePrice();
+    initQRCode();
+    initSlideDrawer();
+    initCancelBooking();
+    initAdminProducts();
 
     showStep(1);
 });
@@ -2212,5 +2216,132 @@ function exportCustomers() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+/* === QR CODE === */
+function initQRCode() {
+    var shareSection = document.querySelector('.share-code');
+    if (!shareSection) return;
+    var qrBtn = document.createElement('button');
+    qrBtn.className = 'btn btn-outline';
+    qrBtn.textContent = '📱 QR Code';
+    qrBtn.style.cssText = 'font-size:.85rem;padding:8px 16px;margin-top:10px';
+    qrBtn.addEventListener('click', function () {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--card-bg);border-radius:12px;padding:30px;max-width:380px;width:100%;text-align:center';
+        var url = encodeURIComponent(window.location.href);
+        box.innerHTML =
+            '<h3 style="margin-bottom:15px">📱 Scannez pour découvrir EcoWash</h3>' +
+            '<div class="qr-wrapper"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + url + '" alt="QR Code" style="width:200px;height:200px;border-radius:8px"></div>' +
+            '<p style="margin-top:15px;color:var(--gray);font-size:.85rem">Scannez avec votre téléphone pour accéder au site</p>' +
+            '<button class="btn btn-outline btn-block" style="margin-top:15px" onclick="this.closest(\'div[style]\').remove()">Fermer</button>';
+        overlay.appendChild(box);
+        overlay.addEventListener('click', function (e) { if (e.target === this) this.remove(); });
+        document.body.appendChild(overlay);
+    });
+    shareSection.appendChild(qrBtn);
+}
+
+/* === SLIDE DRAWER (MOBILE NAV) === */
+function initSlideDrawer() {
+    var menuToggle = document.querySelector('.menu-toggle');
+    var nav = document.querySelector('.nav-links');
+    if (!menuToggle || !nav) return;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'drawer-overlay';
+    overlay.id = 'drawer-overlay';
+    document.body.appendChild(overlay);
+
+    var drawer = document.createElement('div');
+    drawer.className = 'drawer-nav';
+    drawer.id = 'drawer-nav';
+    drawer.innerHTML =
+        '<div class="drawer-header"><span class="logo">EcoWash</span><button class="drawer-close" id="drawer-close">&times;</button></div>' +
+        '<ul>' + nav.innerHTML + '</ul>';
+    document.body.appendChild(drawer);
+
+    function openDrawer() {
+        drawer.classList.add('open');
+        overlay.classList.add('show');
+    }
+
+    function closeDrawer() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('show');
+    }
+
+    menuToggle.addEventListener('click', function (e) {
+        if (window.innerWidth <= 768) {
+            e.preventDefault();
+            openDrawer();
+        }
+    });
+
+    document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    drawer.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            closeDrawer();
+            var href = this.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                var target = document.querySelector(href);
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        });
+    });
+
+    /* Also keep the original mobile menu as fallback */
+    if (window.innerWidth <= 768) {
+        nav.style.display = 'none';
+    }
+    window.addEventListener('resize', function () {
+        if (window.innerWidth <= 768) nav.style.display = 'none';
+        else nav.style.display = '';
+    });
+}
+
+/* === ANNULER RÉSERVATION === */
+function initCancelBooking() {
+    var dashboard = document.getElementById('client-dashboard');
+    if (!dashboard) return;
+    var observer = new MutationObserver(function () {
+        if (!dashboard.classList.contains('hidden')) {
+            var btns = document.querySelectorAll('#client-history .msg-card');
+            btns.forEach(function (card) {
+                if (card.querySelector('.cancel-booking-btn')) return;
+                var statusEl = card.querySelector('.bk-status');
+                if (statusEl && (statusEl.textContent === 'Confirmé' || statusEl.textContent === 'confirmé')) {
+                    var cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'cancel-booking-btn bk-status-btn';
+                    cancelBtn.textContent = '❌ Annuler';
+                    cancelBtn.style.cssText = 'background:#e74c3c;color:white;border:none';
+                    cancelBtn.addEventListener('click', function () {
+                        if (!confirm('Annuler ce rendez-vous ?')) return;
+                        var phone = localStorage.getItem('ecowash_client_phone');
+                        var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+                        for (var i = 0; i < bookings.length; i++) {
+                            if (bookings[i].phone === phone && (!bookings[i].status || bookings[i].status === 'confirmé')) {
+                                bookings[i].status = 'annulé';
+                                break;
+                            }
+                        }
+                        localStorage.setItem('ecowash_bookings', JSON.stringify(bookings));
+                        renderClientDashboard(phone);
+                        showToast('✅ Réservation annulée', 'info');
+                    });
+                    card.querySelector('div:last-child')?.appendChild(cancelBtn);
+                }
+            });
+            observer.disconnect();
+        }
+    });
+    observer.observe(dashboard, { attributes: true, attributeFilter: ['class'] });
 }
 

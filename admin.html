@@ -250,7 +250,9 @@
                     (m.phone ? '<span>&#9742; ' + esc(m.phone) + '</span>' : '') +
                     '<span>Sujet: ' + esc(m.subject) + '</span>' +
                     '<span>' + new Date(m.date).toLocaleString('fr-FR') + '</span></div>' +
-                    '<p>' + esc(m.message) + '</p></div>';
+                    '<p>' + esc(m.message) + '</p>' +
+                    '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' +
+                    '<button class="bk-status-btn" style="background:#e74c3c;color:white;border:none" onclick="deleteItem(\'messages\',' + i + ')">🗑 Supprimer</button></div></div>';
             }
             el.innerHTML = html;
         }
@@ -273,7 +275,7 @@
                     '<span>&#128205; ' + esc(b.address) + '</span></div>' +
                     '<div class="meta"><span>&#128663; ' + esc(b.vehicle) + '</span>' +
                     '<span>&#128737; ' + (serviceNames[b.service] || b.service) + '</span></div>' +
-                    '<div class="meta"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
+                    '<div class="meta" id="bk-meta-' + i + '"><span>&#128197; ' + b.date + ' à ' + b.time + '</span>' +
                     '<span>&#128176; ' + esc(b.payment) + '</span></div>' +
                     (b.notes ? '<p>Note: ' + esc(b.notes) + '</p>' : '') +
                     '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">' +
@@ -281,6 +283,8 @@
                         var act = s === currentStatus ? ' style="background:var(--primary);color:white;border-color:var(--primary)"' : '';
                         return '<button class="bk-status-btn" data-idx="' + i + '" data-status="' + s + '"' + act + '>' + (statusLabels[s] || s) + '</button>';
                     }).join('') +
+                    '<button class="bk-status-btn" onclick="editBooking(' + i + ')" style="background:#3498db;color:white;border:none">✏️ Modifier</button>' +
+                    '<button class="bk-status-btn" onclick="deleteItem(\'bookings\',' + i + ')" style="background:#e74c3c;color:white;border:none">🗑 Supprimer</button>' +
                     '</div></div>';
             }
             el.innerHTML = html;
@@ -310,12 +314,14 @@
                 for (var j = 0; j < parseInt(r.rating); j++) stars += '\u2605';
                 html += '<div class="msg-card"><div class="stars" style="color:#f1c40f">' + stars + '</div>' +
                     '<p>"' + esc(r.message) + '"</p>' +
-                    '<div class="meta">- ' + esc(r.name) + ' &middot; ' + new Date(r.date).toLocaleString('fr-FR') + '</div></div>';
+                    '<div class="meta">- ' + esc(r.name) + ' &middot; ' + new Date(r.date).toLocaleString('fr-FR') + '</div>' +
+                    '<div style="margin-top:8px"><button class="bk-status-btn" style="background:#e74c3c;color:white;border:none" onclick="deleteItem(\'reviews\',' + i + ')">🗑 Supprimer</button></div></div>';
             }
             el.innerHTML = html;
         }
+    }
 
-        function renderCalendar() {
+    function renderCalendar() {
             var grid = document.getElementById('cal-grid');
             var header = document.getElementById('cal-header');
             var events = document.getElementById('cal-events');
@@ -527,6 +533,32 @@
             var d = document.createElement('div');
             d.textContent = s;
             return d.innerHTML;
+        }
+
+        function deleteItem(type, displayIdx) {
+            if (!confirm('Supprimer cet élément ?')) return;
+            var key = 'ecowash_' + type;
+            var list = JSON.parse(localStorage.getItem(key) || '[]');
+            var realIdx = list.length - 1 - displayIdx;
+            list.splice(realIdx, 1);
+            localStorage.setItem(key, JSON.stringify(list));
+            loadData();
+            showToast('✅ Élément supprimé', 'success');
+        }
+
+        function editBooking(displayIdx) {
+            var list = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+            var realIdx = list.length - 1 - displayIdx;
+            var b = list[realIdx];
+            var newDate = prompt('Nouvelle date (AAAA-MM-JJ) :', b.date);
+            if (!newDate) return;
+            var newTime = prompt('Nouvel horaire (HH:MM) :', b.time);
+            if (!newTime) return;
+            list[realIdx].date = newDate;
+            list[realIdx].time = newTime;
+            localStorage.setItem('ecowash_bookings', JSON.stringify(list));
+            loadData();
+            showToast('✅ Rendez-vous modifié', 'success');
         }
 
         if (typeof CONFIG !== 'undefined' && CONFIG.admin.password) {

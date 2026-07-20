@@ -642,6 +642,27 @@ footer {
     .container { max-width: 1200px; }
 }
 
+/* === SLIDE DRAWER MOBILE NAV === */
+.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1998; display: none; }
+.drawer-overlay.show { display: block; }
+.drawer-nav { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--card-bg); z-index: 1999; transition: left .3s ease; box-shadow: 2px 0 20px rgba(0,0,0,.1); overflow-y: auto; }
+.drawer-nav.open { left: 0; }
+.drawer-nav .drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--light); }
+.drawer-nav .drawer-header .logo { font-size: 1.2rem; font-weight: 700; color: var(--primary-dark); }
+.drawer-nav .drawer-header .drawer-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text); }
+.drawer-nav ul { list-style: none; padding: 0; margin: 0; }
+.drawer-nav ul li { border-bottom: 1px solid var(--light); }
+.drawer-nav ul li a { display: block; padding: 15px 20px; text-decoration: none; color: var(--text); font-weight: 500; transition: background .2s; }
+.drawer-nav ul li a:hover { background: var(--light); color: var(--primary); }
+
+/* === STEP TRANSITIONS === */
+.booking-step { animation: stepFade .35s ease; }
+@keyframes stepFade { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+/* === QR CODE === */
+.qr-wrapper { text-align: center; padding: 20px; }
+.qr-wrapper canvas, .qr-wrapper img { display: block; margin: 0 auto; border-radius: 8px; }
+
 /* === LIGHTBOX === */
 .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; cursor: pointer; }
 .lightbox-overlay.show { display: flex; }
