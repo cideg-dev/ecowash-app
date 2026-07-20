@@ -37,6 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initTrust();
     initSavingsCalc();
     initUrgenceTimer();
+    initSocialProof();
+    initPricing();
+    initCompareSlider();
+    initVideoDemo();
 });
 
 function initNav() {
@@ -1252,5 +1256,95 @@ function initUrgenceTimer() {
     }
     updateTimer();
     setInterval(updateTimer, 1000);
+}
+
+/* === SOCIAL PROOF === */
+function initSocialProof() {
+    var el = document.getElementById('social-proof');
+    if (!el) return;
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var count = bookings.length || 0;
+    var items = [
+        { num: count > 0 ? count : 0, suffix: '+', label: 'Lavages réalisés' },
+        { num: Math.max(97, 100 - count), suffix: '%', label: 'Clients satisfaits' },
+        { num: count > 0 ? Math.round(count * 300) : 0, suffix: 'L', label: 'Eau économisée' },
+        { num: 4.8, suffix: '/5', label: 'Note moyenne' }
+    ];
+    if (count > 0) {
+        items[0] = { num: count, suffix: '+', label: 'Lavages réalisés' };
+        items[2] = { num: count * 300, suffix: 'L', label: 'Eau économisée' };
+    }
+    var html = '';
+    items.forEach(function (item) {
+        html += '<div class="social-proof-item"><div class="social-proof-num">' + item.num + item.suffix + '</div>' +
+            '<div class="social-proof-label">' + item.label + '</div></div>';
+    });
+    el.innerHTML = html;
+}
+
+/* === PRICING CARDS === */
+function initPricing() {
+    var grid = document.getElementById('pricing-grid');
+    if (!grid) return;
+    var plans = [
+        { icon: '\u{1F9F9}', name: 'Express', price: '1 000 F', period: '/lavage', desc: 'Lavage rapide pour véhicule propre', features: ['Lavage extérieur complet', 'Microfibres premium', '10 min chrono', 'Sans eau'], featured: false },
+        { icon: '\u{2728}', name: 'Complet', price: '2 000 F', period: '/lavage', desc: 'Le plus populaire — tout compris', features: ['Lavage extérieur + intérieur', 'Aspiration sièges & tapis', 'Cire protectrice anti-UV', 'Nettoie vitres & rétros', 'Désinfectant volant'], featured: true },
+        { icon: '\u{1F48E}', name: 'Premium', price: '3 500 F', period: '/lavage', desc: 'Traitement complet haut de gamme', features: ['Tout le lavage Complet', 'Polissage carrosserie', 'Cire céramique longue durée', 'Protection pneus & plastiques', 'Désinfection complète habitacle'], featured: false }
+    ];
+    var html = '';
+    plans.forEach(function (p) {
+        html += '<div class="pricing-card fade-in' + (p.featured ? ' featured' : '') + '">' +
+            (p.featured ? '<div class="pricing-badge">Populaire</div>' : '') +
+            '<div class="pricing-icon">' + p.icon + '</div>' +
+            '<h3>' + p.name + '</h3>' +
+            '<div class="pricing-price">' + p.price + ' <small>' + p.period + '</small></div>' +
+            '<div class="pricing-desc">' + p.desc + '</div>' +
+            '<ul class="pricing-features">' + p.features.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>' +
+            '<a href="#rendezvous" class="btn">Choisir</a></div>';
+    });
+    grid.innerHTML = html;
+}
+
+/* === COMPARATEUR AVANT/APRÈS === */
+function initCompareSlider() {
+    var range = document.getElementById('slider-range');
+    var before = document.getElementById('slider-before');
+    var after = document.getElementById('slider-after');
+    var handle = document.getElementById('slider-handle');
+    if (!range || !before || !after) return;
+
+    function updateSlider(val) {
+        before.style.clipPath = 'inset(0 ' + (100 - val) + '% 0 0)';
+        after.style.clipPath = 'inset(0 0 0 ' + val + '%)';
+        if (handle) handle.style.left = val + '%';
+    }
+
+    range.addEventListener('input', function () { updateSlider(this.value); });
+
+    var container = range.closest('.compare-slider');
+    if (container) {
+        container.addEventListener('mousemove', function (e) {
+            var rect = container.querySelector('.slider-container').getBoundingClientRect();
+            var x = ((e.clientX - rect.left) / rect.width) * 100;
+            if (x >= 0 && x <= 100) { range.value = x; updateSlider(x); }
+        });
+    }
+
+    updateSlider(range.value);
+}
+
+/* === VIDÉO DÉMO === */
+function initVideoDemo() {
+    var placeholder = document.getElementById('video-placeholder');
+    if (!placeholder) return;
+    placeholder.addEventListener('click', function () {
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1';
+        iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none';
+        this.innerHTML = '';
+        this.appendChild(iframe);
+        this.style.padding = '0';
+        this.style.background = '#000';
+    });
 }
 

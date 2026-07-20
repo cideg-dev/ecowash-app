@@ -56,17 +56,69 @@
     <section id="accueil" class="hero">
         <div class="container fade-in">
             <h1 data-i18n="hero.title">EcoWash</h1>
-            <p class="subtitle" data-i18n="hero.subtitle">La révolution du lavage auto sans eau en Afrique</p>
+            <p class="subtitle" data-i18n="hero.subtitle">La révolution du lavage auto sans eau au Bénin</p>
             <p class="description" data-i18n="hero.desc">Propre, économique, écologique. Moins de 0,5L d'eau par véhicule.</p>
-            <a href="#rendezvous" class="btn" data-i18n="hero.btn">Réserver un lavage</a>
+            <div class="hero-benefits">
+                <span>&#9989; 10 min chrono</span>
+                <span>&#9989; À domicile</span>
+                <span>&#9989; Dès 1 000 F</span>
+            </div>
+            <div class="hero-actions">
+                <a href="#rendezvous" class="btn" data-i18n="hero.btn">Réserver un lavage</a>
+                <a href="tel:+229XXXXXXXXX" class="btn btn-outline btn-call">&#9742; Appeler</a>
+            </div>
         </div>
     </section>
+
+    <div class="social-proof fade-in" id="social-proof"></div>
 
     <section id="etapes" class="section">
         <div class="container">
             <h2 class="fade-in">Comment ça marche ?</h2>
             <p class="text-center fade-in" style="color:var(--gray);margin-bottom:40px">3 étapes simples pour un véhicule impeccable</p>
             <div class="steps-grid fade-in" id="steps-grid"></div>
+        </div>
+    </section>
+
+    <section id="tarifs" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Nos tarifs</h2>
+            <p class="text-center fade-in" style="color:var(--gray);margin-bottom:40px">Des prix adaptés à tous les budgets</p>
+            <div class="pricing-grid fade-in" id="pricing-grid"></div>
+        </div>
+    </section>
+
+    <section id="avant-apres" class="section">
+        <div class="container">
+            <h2 class="fade-in">Avant / Après</h2>
+            <p class="text-center fade-in" style="color:var(--gray);margin-bottom:30px">Le résultat parle de lui-même</p>
+            <div class="compare-slider fade-in" id="compare-slider">
+                <div class="slider-container">
+                    <div class="slider-before" id="slider-before">
+                        <div class="slider-label">Avant</div>
+                        <div class="slider-grime"></div>
+                    </div>
+                    <div class="slider-after" id="slider-after">
+                        <div class="slider-label">Après</div>
+                        <div class="slider-propre"></div>
+                    </div>
+                    <div class="slider-handle" id="slider-handle"></div>
+                </div>
+                <input type="range" class="slider-range" id="slider-range" min="0" max="100" value="50">
+            </div>
+        </div>
+    </section>
+
+    <section id="video-demo" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Voir EcoWash en action</h2>
+            <p class="text-center fade-in" style="color:var(--gray);margin-bottom:30px">Découvrez notre procédé en moins d'une minute</p>
+            <div class="video-wrapper fade-in">
+                <div class="video-placeholder" id="video-placeholder">
+                    <div class="video-play-btn">&#9654;</div>
+                    <div class="video-text">Regarder la démo</div>
+                </div>
+            </div>
         </div>
     </section>
 
