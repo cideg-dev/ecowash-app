@@ -621,6 +621,27 @@ footer {
 .offline-bar { position: fixed; top: 0; left: 0; right: 0; background: #e74c3c; color: white; text-align: center; padding: 8px; font-size: .85rem; z-index: 9999; display: none; font-weight: 500; }
 .offline-bar.show { display: block; }
 
+/* === SKIP LINK === */
+.skip-link { position: absolute; top: -100px; left: 0; background: var(--primary); color: white; padding: 10px 20px; z-index: 10000; font-weight: 600; text-decoration: none; border-radius: 0 0 8px 0; }
+.skip-link:focus { top: 0; }
+
+/* === NEWSLETTER === */
+.newsletter-form input:focus { border-color: var(--primary); outline: none; }
+.newsletter-form .btn { white-space: nowrap; }
+
+/* === DESKTOP IMPROVEMENTS === */
+@media (min-width: 1024px) {
+    .hero { min-height: 70vh; display: flex; align-items: center; }
+    .hero h1 { font-size: 3rem; }
+    .hero .subtitle { font-size: 1.3rem; }
+    .pricing-grid { max-width: 1000px; }
+    .trust-grid { max-width: 1000px; }
+    .features { grid-template-columns: repeat(3, 1fr); max-width: 1000px; margin: 0 auto; }
+}
+@media (min-width: 1400px) {
+    .container { max-width: 1200px; }
+}
+
 /* === LIGHTBOX === */
 .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; cursor: pointer; }
 .lightbox-overlay.show { display: flex; }

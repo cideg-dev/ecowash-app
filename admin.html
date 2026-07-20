@@ -234,7 +234,7 @@
             renderBookings(bookings);
             renderReviews(reviews);
             if (typeof initAdminMessageMgmt === 'function') initAdminMessageMgmt();
-        }
+            if (typeof initAdminWhatsAppReply === 'function') { initAdminWhatsAppReply(); renderMessages(messages); }
 
         function renderMessages(list) {
             var el = document.getElementById('tab-messages');

@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initOnboarding();
     initSocialShare();
     initNotifPrefs();
+    initQuickRebook();
+    initNewsletter();
+    initSatisfactionSurvey();
+    initProductRatings();
 
     showStep(1);
 });
@@ -1769,5 +1773,178 @@ function saveNotifPrefs() {
     localStorage.setItem('ecowash_notif_prefs', JSON.stringify(prefs));
     document.body.querySelector('div:last-child')?.remove();
     showToast('✅ Préférences enregistrées', 'success');
+}
+
+/* === RÉSERVATION RAPIDE === */
+function initQuickRebook() {
+    var dashboard = document.getElementById('client-dashboard');
+    if (!dashboard) return;
+    var lastBooking = JSON.parse(localStorage.getItem('ecowash_last_booking'));
+    if (!lastBooking) return;
+    var observer = new MutationObserver(function () {
+        if (!dashboard.classList.contains('hidden')) {
+            var rebookBtn = document.getElementById('rebook-btn');
+            if (!rebookBtn) {
+                var btn = document.createElement('button');
+                btn.id = 'rebook-btn';
+                btn.className = 'btn';
+                btn.style.cssText = 'width:100%;margin-bottom:15px';
+                btn.innerHTML = '🔄 Reprendre mon dernier lavage (' + lastBooking.service + ' - ' + lastBooking.vehicle + ')';
+                btn.addEventListener('click', function () {
+                    document.getElementById('bk-vehicle').value = lastBooking.vehicle;
+                    document.getElementById('bk-service').value = lastBooking.service;
+                    closeClientDashboard();
+                    document.querySelector('#rendezvous').scrollIntoView({ behavior: 'smooth' });
+                    showToast('✅ Véhicule et service pré-remplis !', 'success');
+                    showStep(2);
+                });
+                var historyEl = document.getElementById('client-history');
+                if (historyEl) historyEl.parentElement.insertBefore(btn, historyEl);
+            }
+            observer.disconnect();
+        }
+    });
+    observer.observe(dashboard, { attributes: true, attributeFilter: ['class'] });
+}
+
+/* === NEWSLETTER === */
+function initNewsletter() {
+    var form = document.getElementById('newsletter-form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('newsletter-email').value.trim();
+        if (!email || email.indexOf('@') === -1) {
+            document.getElementById('newsletter-msg').textContent = '❌ Email invalide';
+            return;
+        }
+        var subs = JSON.parse(localStorage.getItem('ecowash_newsletter') || '[]');
+        if (subs.indexOf(email) !== -1) {
+            document.getElementById('newsletter-msg').textContent = '✅ Vous êtes déjà abonné !';
+            return;
+        }
+        subs.push(email);
+        localStorage.setItem('ecowash_newsletter', JSON.stringify(subs));
+        document.getElementById('newsletter-msg').textContent = '✅ Abonnement réussi ! Bienvenue parmi nos abonnés.';
+        document.getElementById('newsletter-email').value = '';
+        showToast('📬 Abonné à la newsletter !', 'success');
+        if (window.C?.email?.endpoint) {
+            sendForm(window.C.email.endpoint, { email: email, subject: 'Inscription newsletter', message: 'Nouvel abonné newsletter : ' + email });
+        }
+    });
+}
+
+/* === ENQUÊTE SATISFACTION === */
+function initSatisfactionSurvey() {
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    if (!bookings.length) return;
+    var last = bookings[bookings.length - 1];
+    var surveyed = localStorage.getItem('ecowash_surveyed_' + last.id);
+    if (surveyed) return;
+    setTimeout(function () {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--card-bg);border-radius:12px;padding:30px;max-width:380px;width:100%;text-align:center';
+        box.innerHTML =
+            '<div style="font-size:2.5rem;margin-bottom:10px">🌟</div>' +
+            '<h3 style="margin-bottom:10px">Comment s\'est passé votre lavage ?</h3>' +
+            '<p style="color:var(--gray);font-size:.9rem;margin-bottom:15px">Votre avis nous aide à nous améliorer</p>' +
+            '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:20px" id="survey-stars">' +
+            [1,2,3,4,5].map(function (s) { return '<button class="survey-star" data-val="' + s + '" style="font-size:2rem;background:none;border:none;cursor:pointer;color:#ddd;transition:color.2s">★</button>'; }).join('') +
+            '</div>' +
+            '<div id="survey-thanks" class="hidden" style="color:var(--primary);font-weight:600">Merci pour votre retour ! 🙏</div>';
+        overlay.appendChild(box);
+        overlay.addEventListener('click', function (e) { if (e.target === this) this.remove(); });
+        document.body.appendChild(overlay);
+
+        document.querySelectorAll('.survey-star').forEach(function (btn) {
+            btn.addEventListener('mouseenter', function () {
+                var val = parseInt(this.dataset.val);
+                document.querySelectorAll('.survey-star').forEach(function (s, i) {
+                    s.style.color = i < val ? '#f1c40f' : '#ddd';
+                });
+            });
+            btn.addEventListener('click', function () {
+                var val = parseInt(this.dataset.val);
+                var reviews = JSON.parse(localStorage.getItem('ecowash_reviews') || '[]');
+                reviews.push({ name: last.name || 'Client', rating: val, message: 'Avis rapide: ' + val + '/5', date: new Date().toISOString() });
+                localStorage.setItem('ecowash_reviews', JSON.stringify(reviews));
+                localStorage.setItem('ecowash_surveyed_' + last.id, '1');
+                document.getElementById('survey-stars').innerHTML = '';
+                document.getElementById('survey-thanks').classList.remove('hidden');
+                showToast('⭐ Merci pour votre note de ' + val + '/5 !', 'success');
+            });
+        });
+
+        box.addEventListener('mouseleave', function () {
+            document.querySelectorAll('.survey-star').forEach(function (s) { s.style.color = '#ddd'; });
+        });
+    }, 10000);
+}
+
+/* === AVIS PRODUITS === */
+function initProductRatings() {
+    if (!document.querySelector('.product-card')) return;
+    document.querySelectorAll('.product-card').forEach(function (card) {
+        var name = card.querySelector('h3')?.textContent || card.querySelector('.p-header h3')?.textContent || '';
+        if (!name) return;
+        var ratings = JSON.parse(localStorage.getItem('ecowash_product_ratings') || '{}');
+        var r = ratings[name] || { total: 0, count: 0 };
+        var avg = r.count > 0 ? (r.total / r.count).toFixed(1) : '—';
+        var starsHtml = '';
+        for (var i = 0; i < 5; i++) {
+            var filled = r.count > 0 && i < Math.round(r.total / r.count);
+            starsHtml += '<span style="color:' + (filled ? '#f1c40f' : '#ddd') + '">★</span>';
+        }
+        var ratingEl = document.createElement('div');
+        ratingEl.style.cssText = 'margin-top:10px;font-size:.85rem';
+        ratingEl.innerHTML = starsHtml + ' <span style="color:var(--gray)">(' + (r.count || 0) + ')</span>';
+        card.querySelector('.p-body, .p-header, .pricing-features')?.after ? card.querySelector('.p-body, .p-header, .pricing-features').after(ratingEl) : card.appendChild(ratingEl);
+
+        var rateBtn = document.createElement('button');
+        rateBtn.className = 'btn btn-outline';
+        rateBtn.textContent = 'Noter';
+        rateBtn.style.cssText = 'font-size:.78rem;padding:4px 12px;margin-top:8px';
+        rateBtn.addEventListener('click', function () {
+            var val = prompt('Votre note (1-5) :');
+            if (!val) return;
+            val = parseInt(val);
+            if (val < 1 || val > 5) { showToast('Note invalide', 'error'); return; }
+            var ratings = JSON.parse(localStorage.getItem('ecowash_product_ratings') || '{}');
+            if (!ratings[name]) ratings[name] = { total: 0, count: 0 };
+            ratings[name].total += val;
+            ratings[name].count++;
+            localStorage.setItem('ecowash_product_ratings', JSON.stringify(ratings));
+            showToast('✅ Note enregistrée : ' + val + '/5', 'success');
+            setTimeout(function () { location.reload(); }, 1500);
+        });
+        card.appendChild(rateBtn);
+    });
+}
+
+/* === ADMIN WHATSAPP REPLY === */
+function initAdminWhatsAppReply() {
+    if (!document.getElementById('tab-messages')) return;
+    var orig = window.renderMessages;
+    if (orig) {
+        window.renderMessages = function (list) {
+            orig(list);
+            document.querySelectorAll('#tab-messages .msg-card').forEach(function (card, i) {
+                var idx = list.length - 1 - i;
+                var msgs = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
+                var msg = msgs[idx];
+                if (msg && msg.phone) {
+                    var waBtn = document.createElement('a');
+                    waBtn.href = 'https://wa.me/' + (window.C?.whatsapp?.number || '225XXXXXXXXX') + '?text=' + encodeURIComponent('Bonjour ' + msg.name + ', je réponds à votre message concernant : ' + (msg.subject || '') + '. ');
+                    waBtn.target = '_blank';
+                    waBtn.className = 'bk-status-btn';
+                    waBtn.textContent = '💬 Répondre WhatsApp';
+                    waBtn.style.cssText = 'background:#25D366;color:white;border:none';
+                    card.querySelector('div:last-child')?.appendChild(waBtn);
+                }
+            });
+        };
+    }
 }
 
