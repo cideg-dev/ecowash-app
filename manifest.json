@@ -9,6 +9,36 @@
     "theme_color": "#2ecc71",
     "scope": "/",
     "categories": ["business", "lifestyle"],
+    "shortcuts": [
+        {
+            "name": "Réserver un lavage",
+            "short_name": "Réserver",
+            "description": "Prendre un rendez-vous",
+            "url": "/#rendezvous",
+            "icons": [{ "src": "images/icon-192.svg", "sizes": "192x192" }]
+        },
+        {
+            "name": "Catalogue produits",
+            "short_name": "Catalogue",
+            "description": "Voir nos produits",
+            "url": "/produits.html",
+            "icons": [{ "src": "images/icon-192.svg", "sizes": "192x192" }]
+        },
+        {
+            "name": "Nous appeler",
+            "short_name": "Appeler",
+            "description": "Contacter EcoWash",
+            "url": "/#contact",
+            "icons": [{ "src": "images/icon-192.svg", "sizes": "192x192" }]
+        },
+        {
+            "name": "Mon compte",
+            "short_name": "Compte",
+            "description": "Tableau de bord client",
+            "url": "/#client-modal",
+            "icons": [{ "src": "images/icon-192.svg", "sizes": "192x192" }]
+        }
+    ],
     "icons": [
         {
             "src": "images/icon-192.svg",

@@ -167,6 +167,7 @@
             <div id="cal-events" style="margin-top:15px;font-size:.9rem;color:var(--gray)"></div>
         </div>
         <div class="tab-content" id="tab-analytics">
+            <div class="stats-grid" id="analytics-stats" style="margin-bottom:20px"></div>
             <div class="chart-wrap">
                 <h3 style="margin-bottom:15px">Rendez-vous par jour (ce mois)</h3>
                 <canvas id="chart-canvas" height="250"></canvas>
@@ -174,6 +175,14 @@
             <div class="chart-wrap">
                 <h3 style="margin-bottom:15px">Répartition des services</h3>
                 <div id="service-pie" style="display:flex;flex-wrap:wrap;gap:15px;justify-content:center"></div>
+            </div>
+            <div class="chart-wrap" style="margin-top:20px">
+                <h3 style="margin-bottom:15px">Revenus mensuels</h3>
+                <canvas id="revenue-canvas" height="200"></canvas>
+            </div>
+            <div class="chart-wrap" id="top-services" style="margin-top:20px">
+                <h3 style="margin-bottom:15px">Services les plus populaires</h3>
+                <div id="service-ranking" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center"></div>
             </div>
         </div>
         <div class="tab-content" id="tab-customers">
@@ -442,7 +451,31 @@
         function renderAnalytics() {
             var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
             var canvas = document.getElementById('chart-canvas');
+            var revCanvas = document.getElementById('revenue-canvas');
             if (!canvas) return;
+
+            var prices = { simple: 1000, complet: 2500, premium: 4000 };
+            var svcLabels = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
+            var svcColors = { simple: '#2ecc71', complet: '#3498db', premium: '#e67e22' };
+
+            var totalRevenue = 0;
+            var svcCounts = {};
+            bookings.forEach(function (b) {
+                totalRevenue += prices[b.service] || 0;
+                svcCounts[b.service] = (svcCounts[b.service] || 0) + 1;
+            });
+
+            var topService = '';
+            var topCount = 0;
+            for (var s in svcCounts) {
+                if (svcCounts[s] > topCount) { topCount = svcCounts[s]; topService = svcLabels[s] || s; }
+            }
+
+            document.getElementById('analytics-stats').innerHTML =
+                '<div class="stat-card"><div class="num" style="color:#2ecc71">' + totalRevenue.toLocaleString() + ' F</div><div class="label">Revenu total</div></div>' +
+                '<div class="stat-card"><div class="num">' + bookings.length + '</div><div class="label">Rendez-vous</div></div>' +
+                '<div class="stat-card"><div class="num" style="color:#3498db">' + (topService || '—') + '</div><div class="label">Service populaire</div></div>' +
+                '<div class="stat-card"><div class="num" style="color:#e67e22">' + (topCount || 0) + '</div><div class="label">Réservations</div></div>';
 
             var now = new Date();
             var y = now.getFullYear();
@@ -450,9 +483,12 @@
             var daysInMonth = new Date(y, m + 1, 0).getDate();
 
             var dayCounts = [];
+            var dayRevenue = [];
             for (var d = 1; d <= daysInMonth; d++) {
                 var ds = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-                dayCounts.push(bookings.filter(function (b) { return b.date === ds; }).length);
+                var dayBks = bookings.filter(function (b) { return b.date === ds; });
+                dayCounts.push(dayBks.length);
+                dayRevenue.push(dayBks.reduce(function (sum, b) { return sum + (prices[b.service] || 0); }, 0));
             }
 
             var ctx = canvas.getContext('2d');
@@ -491,23 +527,65 @@
                 ctx.fillText(d + 1, x + barW / 2, H - 8);
             }
 
+            /* Revenue chart */
+            if (revCanvas) {
+                var rctx = revCanvas.getContext('2d');
+                var rW = revCanvas.width = revCanvas.parentElement.offsetWidth || 600;
+                var rH = revCanvas.height = 200;
+                var rPad = { t: 15, r: 15, b: 25, l: 50 };
+                var rChartW = rW - rPad.l - rPad.r;
+                var rChartH = rH - rPad.t - rPad.b;
+                var rMax = Math.max(1, Math.max.apply(null, dayRevenue));
+
+                rctx.clearRect(0, 0, rW, rH);
+                rctx.fillStyle = '#666';
+                rctx.font = '10px system-ui';
+                for (var i = 0; i <= 4; i++) {
+                    var yVal = Math.round((rMax / 4) * i);
+                    var yPos = rPad.t + rChartH - (rChartH / 4) * i;
+                    rctx.fillText(yVal.toLocaleString() + ' F', 5, yPos + 3);
+                    rctx.strokeStyle = '#eee';
+                    rctx.beginPath();
+                    rctx.moveTo(rPad.l - 5, yPos);
+                    rctx.lineTo(rW - rPad.r, yPos);
+                    rctx.stroke();
+                }
+
+                rctx.beginPath();
+                rctx.strokeStyle = '#e67e22';
+                rctx.lineWidth = 2;
+                dayRevenue.forEach(function (rev, idx) {
+                    var x = rPad.l + (rChartW / (dayRevenue.length - 1 || 1)) * idx;
+                    var y = rPad.t + rChartH - (rev / rMax) * rChartH;
+                    if (idx === 0) rctx.moveTo(x, y);
+                    else rctx.lineTo(x, y);
+                });
+                rctx.stroke();
+            }
+
             /* Service pie chart */
             var pieEl = document.getElementById('service-pie');
-            var svcCounts = {};
-            bookings.forEach(function (b) {
-                svcCounts[b.service] = (svcCounts[b.service] || 0) + 1;
-            });
-            var labels = { simple: 'Simple', complet: 'Complet', premium: 'Premium' };
-            var colors = { simple: '#2ecc71', complet: '#3498db', premium: '#e67e22' };
             var total = bookings.length || 1;
             var pieHtml = '';
             for (var s in svcCounts) {
                 var pct = Math.round((svcCounts[s] / total) * 100);
                 pieHtml += '<div style="text-align:center;min-width:100px">' +
-                    '<div style="width:60px;height:60px;border-radius:50%;background:' + (colors[s] || '#999') + ';margin:0 auto 6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1.1rem">' + pct + '%</div>' +
-                    '<div style="font-size:.85rem;color:var(--gray)">' + (labels[s] || s) + ' (' + svcCounts[s] + ')</div></div>';
+                    '<div style="width:60px;height:60px;border-radius:50%;background:' + (svcColors[s] || '#999') + ';margin:0 auto 6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1.1rem">' + pct + '%</div>' +
+                    '<div style="font-size:.85rem;color:var(--gray)">' + (svcLabels[s] || s) + ' (' + svcCounts[s] + ')</div></div>';
             }
             pieEl.innerHTML = pieHtml;
+
+            /* Service ranking */
+            var rankingEl = document.getElementById('service-ranking');
+            var sorted = Object.keys(svcCounts).sort(function (a, b) { return svcCounts[b] - svcCounts[a]; });
+            var rankHtml = '';
+            sorted.forEach(function (s, idx) {
+                rankHtml += '<div style="text-align:center;padding:15px;background:var(--white);border-radius:8px;box-shadow:var(--shadow);min-width:120px">' +
+                    '<div style="font-size:1.5rem;font-weight:700;color:' + (svcColors[s] || '#999') + '">#' + (idx + 1) + '</div>' +
+                    '<div style="font-size:.9rem;font-weight:600;margin:5px 0">' + (svcLabels[s] || s) + '</div>' +
+                    '<div style="font-size:.8rem;color:var(--gray)">' + svcCounts[s] + ' réservations</div></div>';
+            });
+            rankingEl.innerHTML = rankHtml || '<div class="empty-msg">Aucune donnée</div>';
         }
 
         function renderCustomers() {

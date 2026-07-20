@@ -602,9 +602,239 @@ function initNotifications() {
                     if (perm === 'granted') {
                         new Notification('EcoWash', { body: 'Notifications activées ! Vous recevrez un rappel 24h avant chaque rendez-vous.', icon: 'images/icon-192.svg' });
                     }
-                });
-            });
-        }
+        });
+    });
+}
+
+/* === GESTION BLOG DANS ADMIN === */
+function initAdminBlog() {
+    var existingTab = document.querySelector('.tab-content#tab-blog');
+    if (existingTab) return;
+
+    var adminNav = document.querySelector('.tabs');
+    if (!adminNav) return;
+
+    var blogTab = document.createElement('button');
+    blogTab.className = 'tab';
+    blogTab.textContent = 'Blog';
+    blogTab.setAttribute('onclick', "switchTab('blog',this)");
+    adminNav.appendChild(blogTab);
+
+    var blogContent = document.createElement('div');
+    blogContent.className = 'tab-content';
+    blogContent.id = 'tab-blog';
+    blogContent.innerHTML =
+        '<h3 style="margin-bottom:15px">Gestion des articles</h3>' +
+        '<div id="blog-admin-list"></div>' +
+        '<div style="margin-top:20px;padding:20px;background:var(--white);border-radius:8px;box-shadow:var(--shadow)">' +
+        '<h4 style="margin-bottom:10px">Nouvel article</h4>' +
+        '<div style="display:grid;gap:10px">' +
+        '<input type="text" id="new-blog-tag" placeholder="Tag (Astuce, Conseil, Éco...)" style="padding:10px;border:1px solid #ddd;border-radius:6px">' +
+        '<input type="text" id="new-blog-title" placeholder="Titre" style="padding:10px;border:1px solid #ddd;border-radius:6px">' +
+        '<textarea id="new-blog-desc" placeholder="Description" rows="3" style="padding:10px;border:1px solid #ddd;border-radius:6px"></textarea>' +
+        '<select id="new-blog-color" style="padding:10px;border:1px solid #ddd;border-radius:6px">' +
+        '<option value="#e74c3c">Rouge</option><option value="#f39c12">Orange</option><option value="#2ecc71">Vert</option><option value="#3498db">Bleu</option><option value="#9b59b6">Violet</option><option value="#1abc9c">Turquoise</option></select>' +
+        '</div>' +
+        '<button class="btn" style="margin-top:10px" onclick="addBlogPost()">➕ Ajouter l\'article</button></div>';
+
+    var exportContainer = document.getElementById('tab-export-clients') || document.querySelector('.tab-content:last-child');
+    if (exportContainer) {
+        exportContainer.parentElement.insertBefore(blogContent, exportContainer);
+    }
+    renderBlogList();
+}
+
+function renderBlogList() {
+    var el = document.getElementById('blog-admin-list');
+    if (!el) return;
+    var posts = JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]');
+    if (!posts.length) { el.innerHTML = '<div class="empty-msg">Aucun article. Ajoutez-en un !</div>'; return; }
+    var html = '<div style="display:grid;gap:8px">';
+    posts.forEach(function (p, i) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--white);padding:10px 14px;border-radius:8px;box-shadow:var(--shadow)">' +
+            '<div><strong>' + esc(p.title) + '</strong> <span style="background:' + (p.color || '#999') + ';color:white;padding:2px 8px;border-radius:10px;font-size:.7rem;margin-left:6px">' + (p.tag || '') + '</span></div>' +
+            '<div style="display:flex;gap:6px">' +
+            '<button onclick="editBlogPost(' + i + ')" style="background:#3498db;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.8rem">✏️</button>' +
+            '<button onclick="deleteBlogPost(' + i + ')" style="background:#e74c3c;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.8rem">🗑</button></div></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+function addBlogPost() {
+    var tag = document.getElementById('new-blog-tag')?.value.trim();
+    var title = document.getElementById('new-blog-title')?.value.trim();
+    var desc = document.getElementById('new-blog-desc')?.value.trim();
+    var color = document.getElementById('new-blog-color')?.value || '#2ecc71';
+    if (!title || !desc) { showToast('Titre et description requis', 'error'); return; }
+    var posts = JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]');
+    posts.push({ tag: tag || 'Article', title: title, desc: desc, icon: '\u{1F4DD}', color: color });
+    localStorage.setItem('ecowash_blog_posts', JSON.stringify(posts));
+    showToast('✅ Article ajouté !', 'success');
+    document.getElementById('new-blog-tag').value = '';
+    document.getElementById('new-blog-title').value = '';
+    document.getElementById('new-blog-desc').value = '';
+    renderBlogList();
+}
+
+function editBlogPost(idx) {
+    var posts = JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]');
+    var p = posts[idx];
+    if (!p) return;
+    var newTitle = prompt('Titre :', p.title);
+    if (!newTitle) return;
+    var newDesc = prompt('Description :', p.desc);
+    if (!newDesc) return;
+    posts[idx].title = newTitle;
+    posts[idx].desc = newDesc;
+    localStorage.setItem('ecowash_blog_posts', JSON.stringify(posts));
+    renderBlogList();
+    showToast('Article modifié', 'success');
+}
+
+function deleteBlogPost(idx) {
+    if (!confirm('Supprimer cet article ?')) return;
+    var posts = JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]');
+    posts.splice(idx, 1);
+    localStorage.setItem('ecowash_blog_posts', JSON.stringify(posts));
+    renderBlogList();
+    showToast('Article supprimé', 'info');
+}
+
+/* === EXPORT / IMPORT DONNÉES === */
+function exportAllData() {
+    var data = {
+        version: 1,
+        exported: new Date().toISOString(),
+        bookings: JSON.parse(localStorage.getItem('ecowash_bookings') || '[]'),
+        messages: JSON.parse(localStorage.getItem('ecowash_messages') || '[]'),
+        reviews: JSON.parse(localStorage.getItem('ecowash_reviews') || '[]'),
+        promos: JSON.parse(localStorage.getItem('ecowash_promos') || '[]'),
+        blog_posts: JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]'),
+        gallery_photos: JSON.parse(localStorage.getItem('ecowash_gallery_photos') || '[]'),
+        product_stocks: JSON.parse(localStorage.getItem('ecowash_product_stocks') || '{}'),
+        challenges: JSON.parse(localStorage.getItem('ecowash_completed_challenges') || '[]'),
+        client_phone: localStorage.getItem('ecowash_client_phone') || ''
+    };
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ecowash_sauvegarde_' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('✅ Sauvegarde téléchargée', 'success');
+}
+
+function importAllData() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                var data = JSON.parse(ev.target.result);
+                if (!data.version) { showToast('Fichier de sauvegarde invalide', 'error'); return; }
+                if (data.bookings) localStorage.setItem('ecowash_bookings', JSON.stringify(data.bookings));
+                if (data.messages) localStorage.setItem('ecowash_messages', JSON.stringify(data.messages));
+                if (data.reviews) localStorage.setItem('ecowash_reviews', JSON.stringify(data.reviews));
+                if (data.promos) localStorage.setItem('ecowash_promos', JSON.stringify(data.promos));
+                if (data.blog_posts) localStorage.setItem('ecowash_blog_posts', JSON.stringify(data.blog_posts));
+                if (data.gallery_photos) localStorage.setItem('ecowash_gallery_photos', JSON.stringify(data.gallery_photos));
+                if (data.product_stocks) localStorage.setItem('ecowash_product_stocks', JSON.stringify(data.product_stocks));
+                if (data.challenges) localStorage.setItem('ecowash_completed_challenges', JSON.stringify(data.challenges));
+                if (data.client_phone) localStorage.setItem('ecowash_client_phone', data.client_phone);
+                showToast('✅ Données restaurées ! Rechargez la page.', 'success');
+                setTimeout(function () { location.reload(); }, 1500);
+            } catch (err) {
+                showToast('Erreur de lecture du fichier', 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+/* === SYNC MULTI-APPAREILS (QR) === */
+function generateSyncQR() {
+    var data = {
+        bookings: JSON.parse(localStorage.getItem('ecowash_bookings') || '[]'),
+        promos: JSON.parse(localStorage.getItem('ecowash_promos') || '[]'),
+        products: JSON.parse(localStorage.getItem('ecowash_product_stocks') || '{}'),
+        exported: new Date().toISOString()
+    };
+    var json = JSON.stringify(data);
+    var compressed = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, function (m, p) { return String.fromCharCode('0x' + p); }));
+    var url = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(compressed);
+
+    var modal = document.getElementById('payment-modal') || document.querySelector('.modal-overlay');
+    if (!modal) return;
+    var existing = document.getElementById('sync-qr-container');
+    if (existing) existing.remove();
+
+    var container = document.createElement('div');
+    container.id = 'sync-qr-container';
+    container.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:30px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.2);z-index:9999;text-align:center;max-width:400px';
+    container.innerHTML =
+        '<h3 style="margin-bottom:10px">&#128247; Sync QR</h3>' +
+        '<p style="font-size:.8rem;color:var(--gray);margin-bottom:15px">Scannez ce code avec l\'autre appareil</p>' +
+        '<img src="' + url + '" alt="QR Code" style="width:250px;height:250px;border-radius:8px;margin-bottom:15px" onerror="this.outerHTML=\'<p style=color:#e74c3c>Erreur de génération QR</p>\'">' +
+        '<p style="font-size:.75rem;color:var(--gray);word-break:break-all;max-height:60px;overflow:hidden">' + compressed.substring(0, 100) + '...</p>' +
+        '<button class="btn" style="margin-top:15px" onclick="document.getElementById(\'sync-qr-container\').remove()">Fermer</button>';
+    document.body.appendChild(container);
+}
+
+/* === INITIALISATION ADMIN BLOG + SAUVEGARDE === */
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById('tab-analytics')) {
+        initAdminBlog();
+        addBackupUI();
+    }
+});
+
+function addBackupUI() {
+    var exportTab = document.querySelector('[onclick*="export-clients"]');
+    if (!exportTab) return;
+
+    var backupTab = document.createElement('button');
+    backupTab.className = 'tab';
+    backupTab.textContent = 'Sauvegarde';
+    backupTab.setAttribute('onclick', "switchTab('backup',this)");
+    exportTab.parentElement.appendChild(backupTab);
+
+    var exportContent = document.getElementById('tab-export-clients');
+    var backupContent = document.createElement('div');
+    backupContent.className = 'tab-content';
+    backupContent.id = 'tab-backup';
+    backupContent.innerHTML =
+        '<h3 style="margin-bottom:20px">Sauvegarde & Synchronisation</h3>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;max-width:500px;margin:0 auto">' +
+        '<button class="btn" onclick="exportAllData()" style="padding:20px;font-size:1rem;height:auto">&#128190; Exporter<br><small style="font-weight:400">Télécharger un fichier JSON</small></button>' +
+        '<button class="btn btn-outline" onclick="importAllData()" style="padding:20px;font-size:1rem;height:auto">&#128191; Importer<br><small style="font-weight:400">Restaurer depuis un fichier</small></button>' +
+        '<button class="btn" onclick="generateSyncQR()" style="padding:20px;font-size:1rem;height:auto;grid-column:1/-1">&#128247; Générer QR Sync<br><small style="font-weight:400">Pour transfert entre appareils</small></button>' +
+        '</div>' +
+        '<div style="margin-top:30px;padding:20px;background:var(--light);border-radius:8px;text-align:center;font-size:.85rem;color:var(--gray)">' +
+        'Les données exportées incluent : réservations, messages, avis, codes promo, articles blog, photos galerie, stocks produits.' +
+        '</div>';
+
+    exportContent.parentElement.appendChild(backupContent);
+
+    if (typeof switchTab === 'function') {
+        var origSwitch = switchTab;
+    }
+}
+
+/* === ESC FALLBACK POUR ADMIN === */
+function esc(s) {
+    if (typeof s !== 'string') return '';
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
     }
 }
 
@@ -818,7 +1048,8 @@ function initCatalogCartButtons() {
 function initBlog() {
     var grid = document.getElementById('blog-grid');
     if (!grid) return;
-    var posts = [
+    var stored = JSON.parse(localStorage.getItem('ecowash_blog_posts') || '[]');
+    var posts = stored.length ? stored : [
         { tag: 'Astuce', title: 'Comment éviter les rayures au lavage ?', desc: 'Utilisez toujours deux microfibres : une pour nettoyer, une pour sécher. Le mouvement droit est essentiel.', icon: '\u{1F6A8}', color: '#e74c3c' },
         { tag: 'Conseil', title: 'Protégez votre peinture du soleil africain', desc: 'Le soleil décolore la peinture. Notre cire de carnauba anti-UV nourrit et protège votre carrosserie.', icon: '\u2600\uFE0F', color: '#f39c12' },
         { tag: 'Éco', title: 'Économisez 300L d\'eau à chaque lavage', desc: 'Un lavage traditionnel utilise 150-300L. EcoWash : 0L. En 1 an, c\'est assez d\'eau pour une famille.', icon: '\u{1F30D}', color: '#2ecc71' },
