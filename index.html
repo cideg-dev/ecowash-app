@@ -522,6 +522,20 @@
         <span class="sticky-cta-sub">Profitez de l'offre</span>
     </a>
 
+    <button class="back-to-top" id="back-to-top" aria-label="Retour en haut">&#8593;</button>
+
+    <div class="exit-popup-overlay" id="exit-popup">
+        <div class="exit-popup">
+            <button class="chat-close" onclick="closeExitPopup()">&times;</button>
+            <div class="exit-icon">🎁</div>
+            <h3>Ne partez pas !</h3>
+            <p>Profitez de <strong>-50%</strong> sur votre premier lavage</p>
+            <p style="font-size:.85rem;color:var(--gray);margin-bottom:20px">Offre valable aujourd'hui seulement</p>
+            <a href="#rendezvous" class="btn btn-block" onclick="closeExitPopup()">Réserver maintenant</a>
+            <button class="btn btn-block btn-outline" style="margin-top:10px" onclick="closeExitPopup()">Non merci</button>
+        </div>
+    </div>
+
     <div class="cart-overlay" id="cart-overlay"></div>
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="chat-header">

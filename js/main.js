@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initPricing();
     initCompareSlider();
     initVideoDemo();
+    initBackToTop();
+    initFormValidation();
+    initExitPopup();
+    initLightbox();
+    initGeoZone();
+    initOfflineIndicator();
 });
 
 function initNav() {
@@ -53,8 +59,16 @@ function initNav() {
     }
     if (links) {
         links.querySelectorAll('a').forEach(function (a) {
-            a.addEventListener('click', function () {
+            a.addEventListener('click', function (e) {
                 links.classList.remove('active');
+                var href = this.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    var target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
             });
         });
     }
@@ -1338,13 +1352,148 @@ function initVideoDemo() {
     var placeholder = document.getElementById('video-placeholder');
     if (!placeholder) return;
     placeholder.addEventListener('click', function () {
+        var userLink = localStorage.getItem('ecowash_youtube_link');
+        var videoId = 'dQw4w9WgXcQ';
+        if (userLink) {
+            var match = userLink.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+            if (match) videoId = match[1];
+        }
         var iframe = document.createElement('iframe');
-        iframe.src = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1';
+        iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1';
         iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:none';
         this.innerHTML = '';
         this.appendChild(iframe);
         this.style.padding = '0';
         this.style.background = '#000';
     });
+}
+
+/* === BACK TO TOP === */
+function initBackToTop() {
+    var btn = document.getElementById('back-to-top');
+    if (!btn) return;
+    window.addEventListener('scroll', function () {
+        btn.classList.toggle('show', window.scrollY > 500);
+    });
+    btn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+/* === VALIDATION FORMULAIRE TEMPS RÉEL === */
+function initFormValidation() {
+    var form = document.getElementById('booking-form');
+    if (!form) return;
+    var fields = form.querySelectorAll('input, select, textarea');
+    fields.forEach(function (el) {
+        el.addEventListener('blur', function () { validateField(el); });
+        el.addEventListener('input', function () {
+            if (el.value.trim()) validateField(el);
+            else el.closest('.form-group')?.classList.remove('valid', 'invalid');
+        });
+    });
+    form.addEventListener('submit', function () {
+        fields.forEach(function (el) { validateField(el); });
+    });
+}
+
+function validateField(el) {
+    var group = el.closest('.form-group');
+    if (!group) return;
+    var valid = true;
+    if (el.hasAttribute('required') && !el.value.trim()) valid = false;
+    if (el.type === 'tel' && el.value.trim() && el.value.trim().length < 6) valid = false;
+    if (el.type === 'email' && el.value.trim() && el.value.indexOf('@') === -1) valid = false;
+    group.classList.toggle('valid', valid && el.value.trim().length > 0);
+    group.classList.toggle('invalid', !valid && el.value.trim().length > 0);
+}
+
+/* === EXIT POPUP === */
+function initExitPopup() {
+    var shown = localStorage.getItem('ecowash_exit_shown');
+    if (shown) return;
+    document.addEventListener('mouseleave', function (e) {
+        if (e.clientY > 0) return;
+        var popup = document.getElementById('exit-popup');
+        if (popup) {
+            popup.classList.add('show');
+            localStorage.setItem('ecowash_exit_shown', '1');
+        }
+    });
+}
+
+function closeExitPopup() {
+    var popup = document.getElementById('exit-popup');
+    if (popup) popup.classList.remove('show');
+}
+
+/* === LIGHTBOX GALERIE === */
+function initLightbox() {
+    var overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    overlay.id = 'lightbox-overlay';
+    overlay.innerHTML = '<button class="lightbox-close" onclick="this.parentElement.classList.remove(\'show\')">&times;</button><img id="lightbox-img" src="" alt="">';
+    document.body.appendChild(overlay);
+    document.querySelectorAll('.gallery-item').forEach(function (item) {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', function () {
+            var bg = this.style.backgroundImage || this.querySelector('img')?.src;
+            var imgSrc = bg ? bg.replace(/url\(['"]?(.*?)['"]?\)/i, '$1') : '';
+            var img = document.getElementById('lightbox-img');
+            if (img && imgSrc) {
+                img.src = imgSrc;
+                overlay.classList.add('show');
+            }
+        });
+    });
+}
+
+/* === GÉOLOCALISATION === */
+function initGeoZone() {
+    var zoneSelect = document.getElementById('bk-address');
+    if (!zoneSelect || !('geolocation' in navigator)) return;
+    var zoneBtn = document.createElement('button');
+    zoneBtn.type = 'button';
+    zoneBtn.textContent = '📍 Me localiser';
+    zoneBtn.className = 'btn btn-outline';
+    zoneBtn.style.cssText = 'margin-top:8px;font-size:.85rem;padding:8px 16px';
+    zoneBtn.addEventListener('click', function () {
+        zoneBtn.textContent = '🔄 Recherche...';
+        zoneBtn.disabled = true;
+        navigator.geolocation.getCurrentPosition(
+            function () {
+                if (window.C?.business?.areas) {
+                    var zones = window.C.business.areas;
+                    zoneSelect.value = zones[0] || '';
+                    zoneBtn.textContent = '✅ ' + zones[0];
+                    setTimeout(function () { zoneBtn.textContent = '📍 Me localiser'; zoneBtn.disabled = false; }, 2000);
+                }
+            },
+            function () {
+                zoneBtn.textContent = '❌ Non disponible';
+                zoneBtn.disabled = false;
+                setTimeout(function () { zoneBtn.textContent = '📍 Me localiser'; }, 2000);
+            }
+        );
+    });
+    zoneSelect.parentElement.appendChild(zoneBtn);
+}
+
+/* === INDICATEUR HORS-LIGNE === */
+function initOfflineIndicator() {
+    var bar = document.createElement('div');
+    bar.className = 'offline-bar';
+    bar.id = 'offline-bar';
+    bar.textContent = '📡 Vous êtes hors-ligne. Certaines fonctionnalités peuvent être limitées.';
+    document.body.prepend(bar);
+
+    function updateOnlineStatus() {
+        var b = document.getElementById('offline-bar');
+        if (b) b.classList.toggle('show', !navigator.onLine);
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
 }
 
