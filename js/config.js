@@ -3,14 +3,14 @@ var CONFIG = {
         name: 'EcoWash',
         slogan: 'La révolution du lavage auto sans eau en Afrique',
         email: 'contact@ecowash.africa',
-        phone: '+225 XX XX XX XX',
+        phone: '+229 XX XX XX XX',
         hours: 'Lun-Sam 08h00-18h00',
-        areas: ['Abidjan', 'Cocody', 'Plateau', 'Treichville', 'Yopougon', 'Marcory', 'Bingerville', 'Grand-Bassam'],
+        areas: ['Cotonou', 'Porto-Novo', 'Parakou', 'Abomey-Calavi', 'Bohicon', 'Ouidah', 'Lokossa', 'Natitingou'],
         currency: { symbol: 'F', code: 'FCFA', locale: 'fr-FR' }
     },
     whatsapp: {
-        number: '225XXXXXXXXX',
-        message: 'Bonjour EcoWash ! J\'ai besoin d\'informations'
+        number: '229XXXXXXXXX',
+        message: 'Bonjour EcoWash Bénin ! J\'ai besoin d\'informations'
     },
     email: {
         service: 'formspree',
@@ -27,13 +27,13 @@ var CONFIG = {
         minNoticeHours: 2
     },
     payment: {
-        methods: ['Orange Money', 'MTN Mobile Money', 'Wave', 'Espèces', 'Carte bancaire'],
+        methods: ['Orange Money', 'MTN Mobile Money', 'Moov Money', 'Wave', 'Espèces'],
         currency: 'FCFA'
     },
     social: {
-        facebook: 'https://facebook.com/ecowash',
-        instagram: 'https://instagram.com/ecowash',
-        whatsapp: 'https://wa.me/225XXXXXXXXX'
+        facebook: 'https://facebook.com/ecowashbenin',
+        instagram: 'https://instagram.com/ecowashbenin',
+        whatsapp: 'https://wa.me/229XXXXXXXXX'
     },
     theme: {
         default: 'light',
@@ -46,7 +46,7 @@ var CONFIG = {
         sound: true
     },
     products: {
-        shippingCost: 2000,
-        freeShippingAbove: 50000
+        shippingCost: 1500,
+        freeShippingAbove: 30000
     }
 };

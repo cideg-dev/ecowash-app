@@ -566,10 +566,12 @@ function formatPrice(val) {
 function initImpact() {
     var grid = document.getElementById('impact-grid');
     if (!grid) return;
+    var bookings = JSON.parse(localStorage.getItem('ecowash_bookings') || '[]');
+    var count = bookings.length;
     var impactData = [
-        { icon: '\u{1F4A7}', num: 0, suffix: 'L', label: 'Eau économisée', target: 125000 },
-        { icon: '\u{1F697}', num: 0, suffix: '', label: 'Véhicules lavés', target: 5280 },
-        { icon: '\u{1F331}', num: 0, suffix: 'kg', label: 'CO\u2082 évité', target: 18400 },
+        { icon: '\u{1F4A7}', num: 0, suffix: 'L', label: 'Eau économisée', target: count * 300 || 125000 },
+        { icon: '\u{1F697}', num: 0, suffix: '', label: 'Véhicules lavés', target: count || 5280 },
+        { icon: '\u{1F331}', num: 0, suffix: 'kg', label: 'CO\u2082 évité', target: Math.round(count * 3.5) || 18400 },
         { icon: '\u{1F4C8}', num: 0, suffix: '%', label: 'Clients satisfaits', target: 97 }
     ];
     var html = '';
