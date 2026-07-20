@@ -1,4 +1,5 @@
 const CACHE = 'ecowash-v1';
+const CACHE = 'ecowash-v2';
 const URLS = [
     '.',
     'index.html',
@@ -7,6 +8,8 @@ const URLS = [
     'css/style.css',
     'js/main.js',
     'js/config.js',
+    'js/i18n.js',
+    'js/cart.js',
     'manifest.json',
     'images/icon-192.svg',
     'images/icon-512.svg'
