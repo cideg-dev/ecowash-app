@@ -17,8 +17,10 @@ var CONFIG = {
         endpoint: 'https://formspree.io/f/xxxxxxxx'
     },
     admin: {
-        password: 'ecowash2026',
-        notificationEmail: 'contact@ecowash.africa'
+        name: 'Martial DEV',
+        email: 'davi.ekue@gmail.com',
+        password: 'Martial1989',
+        notificationEmail: 'davi.ekue@gmail.com'
     },
     booking: {
         interval: 60,
