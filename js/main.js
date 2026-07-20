@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    var C = typeof CONFIG !== 'undefined' ? CONFIG : {};
+    window.C = typeof CONFIG !== 'undefined' ? CONFIG : {};
     var savedLang = localStorage.getItem('ecowash_lang');
     if (savedLang) { LANG.current = savedLang; }
 
