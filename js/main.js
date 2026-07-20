@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     applyTranslations();
     setTimeout(function () { Cart.updateBadge(); }, 100);
+    initImpact();
+    setTimeout(function () { initTestiCarousel(); }, 600);
+    initReferral();
+    initPWAInstall();
+    initCatalogCartButtons();
 });
 
 function initNav() {
@@ -551,3 +556,165 @@ function escHtml(s) {
 function formatPrice(val) {
     return Number(val).toLocaleString('fr-FR') + ' F';
 }
+
+/* === COMPTEURS IMPACT === */
+function initImpact() {
+    var grid = document.getElementById('impact-grid');
+    if (!grid) return;
+    var impactData = [
+        { icon: '\u{1F4A7}', num: 0, suffix: 'L', label: 'Eau économisée', target: 125000 },
+        { icon: '\u{1F697}', num: 0, suffix: '', label: 'Véhicules lavés', target: 5280 },
+        { icon: '\u{1F331}', num: 0, suffix: 'kg', label: 'CO\u2082 évité', target: 18400 },
+        { icon: '\u{1F4C8}', num: 0, suffix: '%', label: 'Clients satisfaits', target: 97 }
+    ];
+    var html = '';
+    impactData.forEach(function (d, i) {
+        html += '<div class="impact-item fade-in"><div class="impact-icon">' + d.icon + '</div>' +
+            '<div class="impact-num"><span id="impact-val-' + i + '">0</span><span class="suffix">' + d.suffix + '</span></div>' +
+            '<div class="impact-label">' + d.label + '</div></div>';
+    });
+    grid.innerHTML = html;
+
+    impactData.forEach(function (d, i) {
+        animateCounter('impact-val-' + i, d.target, 2000);
+    });
+}
+
+function animateCounter(id, target, duration) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var start = 0;
+    var step = Math.ceil(target / (duration / 16));
+    function tick() {
+        start += step;
+        if (start >= target) { el.textContent = target.toLocaleString('fr-FR'); return; }
+        el.textContent = start.toLocaleString('fr-FR');
+        requestAnimationFrame(tick);
+    }
+    tick();
+}
+
+/* === CARROUSEL AVIS === */
+function initTestiCarousel() {
+    var container = document.getElementById('testimonials-list');
+    if (!container) return;
+    var slides = container.querySelectorAll('.testimonial');
+    if (slides.length < 2) return;
+
+    container.className = 'testi-carousel';
+    container.innerHTML = '';
+    var dotsHtml = '<div class="testi-dots">';
+
+    slides.forEach(function (s, i) {
+        s.className = 'testi-slide' + (i === 0 ? ' active' : '');
+        container.appendChild(s);
+        dotsHtml += '<button class="testi-dot' + (i === 0 ? ' active' : '') + '" onclick="goToSlide(' + i + ')"></button>';
+    });
+    dotsHtml += '</div>';
+    container.insertAdjacentHTML('beforeend', dotsHtml);
+
+    var current = 0;
+    setInterval(function () {
+        goToSlide((current + 1) % slides.length);
+    }, 5000);
+
+    window.goToSlide = function (idx) {
+        container.querySelectorAll('.testi-slide').forEach(function (s, i) {
+            s.classList.toggle('active', i === idx);
+        });
+        container.querySelectorAll('.testi-dot').forEach(function (d, i) {
+            d.classList.toggle('active', i === idx);
+        });
+        current = idx;
+    };
+}
+
+/* === PARRAINAGE === */
+function initReferral() {
+    var codeInput = document.getElementById('referral-code');
+    if (!codeInput) return;
+    var stored = localStorage.getItem('ecowash_ref_code');
+    if (!stored) {
+        stored = 'EW' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2,4).toUpperCase();
+        localStorage.setItem('ecowash_ref_code', stored);
+    }
+    codeInput.value = stored;
+}
+
+function shareReferral(method) {
+    var code = document.getElementById('referral-code');
+    if (!code) return;
+    var msg = 'Rejoins EcoWash ! Utilise mon code parrainage "' + code.value + '" et reçois 500 F de réduction sur ton premier lavage. Télécharge : ' + window.location.href;
+
+    if (method === 'whatsapp') {
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    } else if (method === 'copy') {
+        copyReferral();
+    } else if (method === 'sms') {
+        window.open('sms:?body=' + encodeURIComponent(msg), '_blank');
+    }
+}
+
+function copyReferral() {
+    var input = document.getElementById('referral-code');
+    if (!input) return;
+    input.select();
+    input.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); alert('Code copié ! Partagez-le à vos amis.'); } catch (e) {}
+}
+
+/* === INSTALLATION PWA === */
+function initPWAInstall() {
+    var deferredPrompt = null;
+    var installBar = document.getElementById('install-bar');
+    var installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBar) installBar.classList.add('show');
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', function () {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function () {
+                deferredPrompt = null;
+                if (installBar) installBar.classList.remove('show');
+            });
+        });
+    }
+
+    if ('getInstalledRelatedApps' in navigator) {
+        navigator.getInstalledRelatedApps().then(function (apps) {
+            if (apps.length > 0 && installBar) installBar.classList.remove('show');
+        });
+    }
+
+    window.addEventListener('appinstalled', function () {
+        if (installBar) installBar.classList.remove('show');
+    });
+}
+
+function dismissInstall() {
+    var bar = document.getElementById('install-bar');
+    if (bar) bar.classList.remove('show');
+    localStorage.setItem('ecowash_dismiss_install', '1');
+}
+
+/* === AJOUT AU PANIER (produits.html) === */
+function initCatalogCartButtons() {
+    document.querySelectorAll('.add-to-cart-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var product = {
+                id: btn.getAttribute('data-id'),
+                name: btn.getAttribute('data-name'),
+                price: parseInt(btn.getAttribute('data-price'))
+            };
+            Cart.add(product);
+        });
+    });
+}
+
+

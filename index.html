@@ -48,6 +48,57 @@
         </div>
     </section>
 
+    <section id="impact" class="section impact-section">
+        <div class="container">
+            <h2 class="fade-in">Notre Impact</h2>
+            <div class="impact-grid fade-in" id="impact-grid"></div>
+        </div>
+    </section>
+
+    <section id="comparaison" class="section">
+        <div class="container">
+            <h2 class="fade-in">EcoWash vs Autres Méthodes</h2>
+            <div class="compare-grid fade-in">
+                <div class="compare-col ecowash">
+                    <div class="compare-icon">&#9989;</div>
+                    <h4>EcoWash</h4>
+                    <ul>
+                        <li>0 L d'eau</li>
+                        <li>10-15 min</li>
+                        <li>Protège la peinture</li>
+                        <li>Anti-rayures</li>
+                        <li>Biodégradable</li>
+                        <li>Partout (parking, rue)</li>
+                    </ul>
+                </div>
+                <div class="compare-col traditional">
+                    <div class="compare-icon">&#128167;</div>
+                    <h4>Station traditionnelle</h4>
+                    <ul>
+                        <li>150-300 L d'eau</li>
+                        <li>30-45 min</li>
+                        <li>Peut rayer</li>
+                        <li>File d'attente</li>
+                        <li>Eaux usées</li>
+                        <li>Déplacement nécessaire</li>
+                    </ul>
+                </div>
+                <div class="compare-col manual">
+                    <div class="compare-icon">&#128582;</div>
+                    <h4>Laveur informel</h4>
+                    <ul>
+                        <li>50+ L d'eau</li>
+                        <li>20-30 min</li>
+                        <li>Rayures fréquentes</li>
+                        <li>Chiffon sale</li>
+                        <li>Qualité variable</li>
+                        <li>Pas de protection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section id="produit" class="section">
         <div class="container">
             <h2 class="fade-in" data-i18n="produit.title">Notre Produit</h2>
@@ -209,6 +260,35 @@
         </div>
     </section>
 
+    <section id="parrainage" class="section bg-light">
+        <div class="container">
+            <h2 class="fade-in">Parrainez vos amis</h2>
+            <p class="text-center fade-in">Parrainez un ami et recevez 500 F de réduction sur votre prochain lavage !</p>
+            <div class="share-grid fade-in">
+                <div class="share-card" onclick="shareReferral('whatsapp')">
+                    <div class="s-icon">&#128172;</div>
+                    <h3>Partager sur WhatsApp</h3>
+                    <p>Envoyez votre code parrainage à vos amis</p>
+                </div>
+                <div class="share-card" onclick="shareReferral('copy')">
+                    <div class="s-icon">&#128203;</div>
+                    <h3>Copier le lien</h3>
+                    <p>Copiez votre lien de parrainage personnalisé</p>
+                </div>
+                <div class="share-card" onclick="shareReferral('sms')">
+                    <div class="s-icon">&#128231;</div>
+                    <h3>Inviter par SMS</h3>
+                    <p>Envoyez une invitation directe à vos contacts</p>
+                </div>
+            </div>
+            <div class="share-code fade-in">
+                <span style="color:var(--gray);font-size:.9rem">Votre code :</span>
+                <input type="text" id="referral-code" readonly>
+                <button onclick="copyReferral()">Copier</button>
+            </div>
+        </div>
+    </section>
+
     <section id="faq" class="section">
         <div class="container">
             <h2 class="fade-in" data-i18n="faq.title">Questions fréquentes</h2>
@@ -245,6 +325,20 @@
             </div>
         </div>
     </footer>
+
+    <div class="install-bar" id="install-bar">
+        <div class="ib-info">
+            <div class="ib-icon">&#128230;</div>
+            <div class="ib-text">
+                <strong>Installer EcoWash</strong>
+                Installez l'application pour un accès rapide
+            </div>
+        </div>
+        <div class="ib-actions">
+            <button class="ib-btn ib-btn-close" onclick="dismissInstall()">Plus tard</button>
+            <button class="ib-btn ib-btn-install" id="install-btn">Installer</button>
+        </div>
+    </div>
 
     <button class="chat-btn" id="chat-btn" aria-label="Chat">&#128172;</button>
     <div class="chat-window" id="chat-window">

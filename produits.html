@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2ecc71">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>EcoWash - Nos Produits</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="manifest" href="manifest.json">
@@ -245,7 +246,14 @@
                 <li><a href="index.html#rendezvous">Rendez-vous</a></li>
                 <li><a href="index.html#contact">Contact</a></li>
             </ul>
-            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Theme">&#9790;</button>
+                <button class="lang-toggle" id="lang-toggle" aria-label="Langue">FR</button>
+                <a href="index.html" class="cart-btn" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">
+                    &#128722; <span class="cart-badge" id="cart-badge">0</span>
+                </a>
+                <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            </div>
         </nav>
     </header>
 
@@ -776,6 +784,8 @@
     </a>
 
     <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/cart.js"></script>
     <script src="js/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
@@ -783,6 +793,44 @@
                 navigator.serviceWorker.register('sw.js');
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var products = [
+                { id: 'a1-conc', name: 'A1 - Concentré Liquide 1:200', price: 2000, selector: '.product-card:nth-child(1) .p-footer' },
+                { id: 'a2-poudre', name: 'A2 - Poudre Concentrée OPS', price: 1000, selector: '.product-card:nth-child(2) .p-footer' },
+                { id: 'b1-wax', name: 'B1 - Henkseal Wash Wax', price: 3000, selector: '.product-card:nth-child(4) .p-footer' },
+                { id: 'b2-restauration', name: 'B2 - Restauration Couleur (option)', price: 2000, selector: '.product-card:nth-child(5) .p-footer' },
+                { id: 'd1-degreasant', name: 'D1 - Aoifa Láidir Dégraissant', price: 3000, selector: '.product-card:nth-child(9) .p-footer' },
+                { id: 'd2-degreaser', name: 'D2 - DUBI Degreaser Concentrate', price: 2000, selector: '.product-card:nth-child(10) .p-footer' }
+            ];
+
+            products.forEach(function (p) {
+                var footer = document.querySelector(p.selector);
+                if (footer) {
+                    var btn = document.createElement('button');
+                    btn.className = 'btn btn-sm add-to-cart-btn';
+                    btn.textContent = 'Ajouter au panier';
+                    btn.setAttribute('data-id', p.id);
+                    btn.setAttribute('data-name', p.name);
+                    btn.setAttribute('data-price', p.price);
+                    btn.addEventListener('click', function () {
+                        Cart.add({ id: p.id, name: p.name, price: p.price });
+                    });
+                    footer.appendChild(btn);
+                }
+            });
+
+            var themeSaved = localStorage.getItem('ecowash_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', themeSaved);
+            var themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) themeBtn.textContent = themeSaved === 'dark' ? '\u2600' : '\u{1F319}';
+
+            var langSaved = localStorage.getItem('ecowash_lang') || 'fr';
+            var langBtn = document.getElementById('lang-toggle');
+            if (langBtn) langBtn.textContent = langSaved.toUpperCase();
+
+            Cart.updateBadge();
+        });
     </script>
 </body>
 </html>
