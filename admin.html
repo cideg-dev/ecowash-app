@@ -233,6 +233,7 @@
             renderMessages(messages);
             renderBookings(bookings);
             renderReviews(reviews);
+            if (typeof initAdminMessageMgmt === 'function') initAdminMessageMgmt();
         }
 
         function renderMessages(list) {

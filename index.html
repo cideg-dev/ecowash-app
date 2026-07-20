@@ -221,21 +221,15 @@
             </div>
 
             <form id="booking-form" class="contact-form fade-in">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="bk-name">Nom complet</label>
-                        <input type="text" id="bk-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="bk-phone">Téléphone</label>
-                        <input type="tel" id="bk-phone" required>
-                    </div>
+                <div class="step-indicators" id="step-indicators">
+                    <div class="step-dot active" data-step="1">1</div>
+                    <div class="step-dot" data-step="2">2</div>
+                    <div class="step-dot" data-step="3">3</div>
+                    <div class="step-dot" data-step="4">4</div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="bk-address">Adresse / Lieu</label>
-                        <input type="text" id="bk-address" placeholder="Où doit-on venir ?" required>
-                    </div>
+
+                <div class="booking-step active" data-step="1">
+                    <h3 style="text-align:center;margin-bottom:20px">🚗 Quel véhicule ?</h3>
                     <div class="form-group">
                         <label for="bk-vehicle">Type de véhicule</label>
                         <select id="bk-vehicle">
@@ -245,8 +239,35 @@
                             <option value="utilitaire">Utilitaire</option>
                         </select>
                     </div>
+                    <div id="bk-price-display"></div>
+                    <div class="booking-nav">
+                        <span></span>
+                        <button type="button" class="btn" onclick="nextStep(1)">Suivant</button>
+                    </div>
                 </div>
-                <div class="form-row">
+
+                <div class="booking-step" data-step="2">
+                    <h3 style="text-align:center;margin-bottom:20px">📅 Quand ?</h3>
+                    <div class="form-group">
+                        <label for="bk-date">Date</label>
+                        <input type="date" id="bk-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-time">Créneau</label>
+                        <select id="bk-time"></select>
+                    </div>
+                    <div class="booking-nav">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(2)">Retour</button>
+                        <button type="button" class="btn" onclick="nextStep(2)">Suivant</button>
+                    </div>
+                </div>
+
+                <div class="booking-step" data-step="3">
+                    <h3 style="text-align:center;margin-bottom:20px">📍 Où & comment ?</h3>
+                    <div class="form-group">
+                        <label for="bk-address">Adresse / Lieu</label>
+                        <input type="text" id="bk-address" placeholder="Où doit-on venir ?" required>
+                    </div>
                     <div class="form-group">
                         <label for="bk-service">Service</label>
                         <select id="bk-service">
@@ -256,30 +277,40 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="bk-date">Date</label>
-                        <input type="date" id="bk-date" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="bk-time">Créneau</label>
-                        <select id="bk-time"></select>
-                    </div>
-                    <div class="form-group">
                         <label for="bk-payment">Paiement</label>
                         <select id="bk-payment"></select>
                     </div>
+                    <div class="form-group">
+                        <label for="bk-promo">Code promo (optionnel)</label>
+                        <input type="text" id="bk-promo" placeholder="Entrez votre code">
+                    </div>
+                    <div id="promo-msg" class="promo-msg"></div>
+                    <div class="booking-nav">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(3)">Retour</button>
+                        <button type="button" class="btn" onclick="nextStep(3)">Suivant</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="bk-promo">Code promo (optionnel)</label>
-                    <input type="text" id="bk-promo" placeholder="Entrez votre code">
+
+                <div class="booking-step" data-step="4">
+                    <h3 style="text-align:center;margin-bottom:20px">📋 Confirmation</h3>
+                    <div class="form-group">
+                        <label for="bk-name">Nom complet</label>
+                        <input type="text" id="bk-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-phone">Téléphone</label>
+                        <input type="tel" id="bk-phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bk-notes">Notes (optionnel)</label>
+                        <textarea id="bk-notes" rows="2"></textarea>
+                    </div>
+                    <div style="background:var(--light);padding:15px;border-radius:8px;margin:15px 0;font-size:.9rem" id="step-summary"></div>
+                    <div class="booking-nav">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(4)">Retour</button>
+                        <button type="submit" class="btn" data-i18n="rendezvous.btn">Confirmer le rendez-vous</button>
+                    </div>
                 </div>
-                <div id="promo-msg" class="promo-msg"></div>
-                <div class="form-group">
-                    <label for="bk-notes">Notes (optionnel)</label>
-                    <textarea id="bk-notes" rows="2"></textarea>
-                </div>
-                <button type="submit" class="btn btn-block" data-i18n="rendezvous.btn">Confirmer le rendez-vous</button>
             </form>
             <div id="bk-success" class="form-message success hidden" data-i18n="booking.success">Rendez-vous confirmé ! Nous arriverons à l'heure choisie.</div>
         </div>

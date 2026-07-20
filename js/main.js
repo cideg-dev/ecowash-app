@@ -47,6 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initLightbox();
     initGeoZone();
     initOfflineIndicator();
+    initVehicleProfiles();
+    initOnboarding();
+    initSocialShare();
+    initNotifPrefs();
+
+    showStep(1);
 });
 
 function initNav() {
@@ -1495,5 +1501,273 @@ function initOfflineIndicator() {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
+}
+
+/* === MULTI-STEP BOOKING === */
+var currentStep = 1;
+var totalSteps = 4;
+
+function nextStep(n) {
+    if (n === 1) { if (!validateStep1()) return; }
+    if (n === 2) { if (!validateStep2()) return; }
+    if (n === 3) { if (!validateStep3()) return; }
+    currentStep = n + 1;
+    showStep(currentStep);
+    if (currentStep === totalSteps) updateStepSummary();
+}
+
+function prevStep(n) {
+    currentStep = n - 1;
+    showStep(currentStep);
+}
+
+function showStep(n) {
+    document.querySelectorAll('.booking-step').forEach(function (el) { el.classList.remove('active'); });
+    document.querySelectorAll('.step-dot').forEach(function (el) { el.classList.remove('active', 'done'); });
+    for (var i = 1; i <= totalSteps; i++) {
+        var dot = document.querySelector('.step-dot[data-step="' + i + '"]');
+        if (dot) {
+            if (i === n) dot.classList.add('active');
+            else if (i < n) dot.classList.add('done');
+        }
+    }
+    var stepEl = document.querySelector('.booking-step[data-step="' + n + '"]');
+    if (stepEl) stepEl.classList.add('active');
+}
+
+function validateStep1() {
+    var v = document.getElementById('bk-vehicle');
+    if (v && v.value) return true;
+    showToast('Veuillez choisir un type de véhicule', 'error');
+    return false;
+}
+
+function validateStep2() {
+    var d = document.getElementById('bk-date');
+    var t = document.getElementById('bk-time');
+    if (d && d.value && t && t.value) return true;
+    showToast('Veuillez choisir une date et un créneau', 'error');
+    return false;
+}
+
+function validateStep3() {
+    var a = document.getElementById('bk-address');
+    var s = document.getElementById('bk-service');
+    if (a && a.value.trim() && s && s.value) return true;
+    showToast('Veuillez remplir l\'adresse et le service', 'error');
+    return false;
+}
+
+function updateStepSummary() {
+    var el = document.getElementById('step-summary');
+    if (!el) return;
+    var vehicle = document.getElementById('bk-vehicle');
+    var service = document.getElementById('bk-service');
+    var date = document.getElementById('bk-date');
+    var time = document.getElementById('bk-time');
+    var address = document.getElementById('bk-address');
+    var payment = document.getElementById('bk-payment');
+    var svcNames = { simple: 'Simple 1 000 F', complet: 'Complet 2 500 F', premium: 'Premium 4 000 F' };
+    var vNames = { citadine: 'Citadine', berline: 'Berline', suv: '4x4/SUV', utilitaire: 'Utilitaire' };
+    el.innerHTML =
+        '<strong>Récapitulatif</strong><br><br>' +
+        '🚗 ' + (vNames[vehicle?.value] || '—') + '<br>' +
+        '📅 ' + (date?.value || '—') + ' à ' + (time?.value || '—') + '<br>' +
+        '📍 ' + (address?.value || '—') + '<br>' +
+        '🧼 ' + (svcNames[service?.value] || '—') + '<br>' +
+        '💳 ' + (payment?.value || '—');
+}
+
+/* === TOAST NOTIFICATIONS === */
+function showToast(msg, type) {
+    type = type || 'info';
+    var container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed;top:80px;right:15px;z-index:9999;display:flex;flex-direction:column;gap:8px';
+        document.body.appendChild(container);
+    }
+    var toast = document.createElement('div');
+    toast.style.cssText = 'padding:12px 20px;border-radius:8px;color:white;font-size:.9rem;font-weight:500;box-shadow:0 4px 15px rgba(0,0,0,.15);animation:slideIn .3s ease;max-width:350px';
+    if (type === 'error') toast.style.background = '#e74c3c';
+    else if (type === 'success') toast.style.background = '#2ecc71';
+    else toast.style.background = '#3498db';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function () {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity .3s';
+        setTimeout(function () { toast.remove(); }, 300);
+    }, 3500);
+}
+
+/* === PROFILS VÉHICULES === */
+function initVehicleProfiles() {
+    var vehicleSelect = document.getElementById('bk-vehicle');
+    if (!vehicleSelect) return;
+    var profiles = JSON.parse(localStorage.getItem('ecowash_vehicles') || '[]');
+    if (!profiles.length) return;
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'margin-bottom:10px';
+    var label = document.createElement('label');
+    label.textContent = 'Véhicule enregistré';
+    var select = document.createElement('select');
+    select.id = 'bk-saved-vehicle';
+    select.innerHTML = '<option value="">— Choisir un véhicule —</option>';
+    profiles.forEach(function (p, i) {
+        var opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = p.name + ' (' + p.type + ')';
+        select.appendChild(opt);
+    });
+    select.addEventListener('change', function () {
+        var idx = parseInt(this.value);
+        if (!isNaN(idx) && profiles[idx]) {
+            vehicleSelect.value = profiles[idx].type;
+            var addr = document.getElementById('bk-address');
+            if (addr && profiles[idx].address) addr.value = profiles[idx].address;
+            showToast('✅ Véhicule chargé : ' + profiles[idx].name, 'success');
+        }
+    });
+    wrapper.appendChild(label);
+    wrapper.appendChild(select);
+    vehicleSelect.parentElement.insertBefore(wrapper, vehicleSelect);
+
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn btn-outline';
+    saveBtn.textContent = '💾 Sauvegarder ce véhicule';
+    saveBtn.style.cssText = 'margin-top:8px;font-size:.85rem;padding:8px 16px';
+    saveBtn.addEventListener('click', function () {
+        var name = prompt('Nom du véhicule (ex: Ma voiture)');
+        if (!name) return;
+        var type = vehicleSelect.value;
+        var address = document.getElementById('bk-address')?.value || '';
+        var profiles = JSON.parse(localStorage.getItem('ecowash_vehicles') || '[]');
+        profiles.push({ name: name, type: type, address: address });
+        localStorage.setItem('ecowash_vehicles', JSON.stringify(profiles));
+        showToast('✅ Véhicule "' + name + '" sauvegardé !', 'success');
+        setTimeout(function () { location.reload(); }, 1500);
+    });
+    vehicleSelect.parentElement.appendChild(saveBtn);
+}
+
+/* === ADMIN MESSAGE MANAGEMENT === */
+function initAdminMessageMgmt() {
+    if (!document.getElementById('tab-messages')) return;
+    var origRender = window.renderMessages;
+    if (origRender) {
+        window.renderMessages = function (list) {
+            origRender(list);
+            document.querySelectorAll('#tab-messages .msg-card').forEach(function (card, i) {
+                var idx = list.length - 1 - i;
+                var actions = document.createElement('div');
+                actions.style.cssText = 'margin-top:10px;display:flex;gap:8px;flex-wrap:wrap';
+                var msgs = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
+                var msg = msgs[idx];
+                if (msg) {
+                    var readBtn = document.createElement('button');
+                    readBtn.className = 'bk-status-btn';
+                    readBtn.textContent = msg.read ? '✅ Lu' : '◻️ Marquer lu';
+                    readBtn.addEventListener('click', function () {
+                        var all = JSON.parse(localStorage.getItem('ecowash_messages') || '[]');
+                        all[idx].read = true;
+                        localStorage.setItem('ecowash_messages', JSON.stringify(all));
+                        showToast('Message marqué comme lu', 'success');
+                        loadData();
+                    });
+                    actions.appendChild(readBtn);
+                }
+                card.appendChild(actions);
+            });
+        };
+    }
+}
+
+/* === ONBOARDING PREMIÈRE VISITE === */
+function initOnboarding() {
+    if (localStorage.getItem('ecowash_onboarding_done')) return;
+    var overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:var(--card-bg);border-radius:16px;padding:40px 30px;max-width:400px;width:100%;text-align:center;animation:popIn .3s ease';
+    box.innerHTML =
+        '<div style="font-size:3rem;margin-bottom:15px">🧼</div>' +
+        '<h2 style="margin-bottom:10px">Bienvenue sur EcoWash</h2>' +
+        '<p style="color:var(--gray);margin-bottom:20px;font-size:.95rem;line-height:1.6">Le lavage auto sans eau qui vient à vous.<br>Propre, écologique et économique.</p>' +
+        '<div style="text-align:left;margin-bottom:20px;font-size:.9rem">' +
+        '<div style="padding:6px 0">✅ Réservez en 30 secondes</div>' +
+        '<div style="padding:6px 0">✅ Nous venons à domicile</div>' +
+        '<div style="padding:6px 0">✅ 10 min chrono</div>' +
+        '<div style="padding:6px 0">✅ Dès 1 000 F</div></div>' +
+        '<button class="btn btn-block" onclick="closeOnboarding()">C\'est parti !</button>';
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
+function closeOnboarding() {
+    var el = document.getElementById('onboarding-overlay');
+    if (el) {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .3s';
+        setTimeout(function () { el.remove(); }, 300);
+    }
+    localStorage.setItem('ecowash_onboarding_done', '1');
+}
+
+/* === BOUTONS PARTAGE RÉSEAUX SOCIAUX === */
+function initSocialShare() {
+    var socialEl = document.getElementById('footer-social');
+    if (!socialEl) return;
+    var url = encodeURIComponent('https://cideg-dev.github.io/ecowash-app/');
+    var text = encodeURIComponent('Découvrez EcoWash 🧼 Lavage auto sans eau au Bénin !');
+    var extra = '<br><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">' +
+        '<a href="https://www.facebook.com/sharer/sharer.php?u=' + url + '" target="_blank" style="padding:6px 14px;background:#1877f2;color:white;border-radius:6px;text-decoration:none;font-size:.8rem">Facebook</a>' +
+        '<a href="https://wa.me/?text=' + text + '%20' + url + '" target="_blank" style="padding:6px 14px;background:#25D366;color:white;border-radius:6px;text-decoration:none;font-size:.8rem">WhatsApp</a>' +
+        '<a href="https://twitter.com/intent/tweet?text=' + text + '&url=' + url + '" target="_blank" style="padding:6px 14px;background:#000;color:white;border-radius:6px;text-decoration:none;font-size:.8rem">X</a>' +
+        '<a href="https://www.linkedin.com/sharing/share-offsite/?url=' + url + '" target="_blank" style="padding:6px 14px;background:#0a66c2;color:white;border-radius:6px;text-decoration:none;font-size:.8rem">LinkedIn</a>' +
+        '</div>';
+    socialEl.innerHTML = socialEl.innerHTML + extra;
+}
+
+/* === PRÉFÉRENCES NOTIFICATIONS === */
+function initNotifPrefs() {
+    var prefs = JSON.parse(localStorage.getItem('ecowash_notif_prefs') || '{"reminder":true,"promo":true,"service":true}');
+    var btn = document.createElement('button');
+    btn.className = 'btn btn-outline';
+    btn.textContent = '🔔 Préférences notifications';
+    btn.style.cssText = 'font-size:.85rem;padding:8px 16px;margin-top:10px';
+    btn.addEventListener('click', function () {
+        var html = '<div style="padding:10px 0"><label style="display:flex;align-items:center;gap:10px;padding:8px 0">' +
+            '<input type="checkbox" id="pref-reminder"' + (prefs.reminder ? ' checked' : '') + '> Rappels rendez-vous</label>' +
+            '<label style="display:flex;align-items:center;gap:10px;padding:8px 0">' +
+            '<input type="checkbox" id="pref-promo"' + (prefs.promo ? ' checked' : '') + '> Offres promo</label>' +
+            '<label style="display:flex;align-items:center;gap:10px;padding:8px 0">' +
+            '<input type="checkbox" id="pref-service"' + (prefs.service ? ' checked' : '') + '> Rappels service (2 semaines)</label></div>' +
+            '<button class="btn btn-block" onclick="saveNotifPrefs()">Enregistrer</button>';
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:var(--card-bg);border-radius:12px;padding:30px;max-width:360px;width:100%';
+        box.innerHTML = '<h3 style="margin-bottom:15px">🔔 Préférences</h3>' + html;
+        overlay.appendChild(box);
+        overlay.addEventListener('click', function (e) { if (e.target === this) this.remove(); });
+        document.body.appendChild(overlay);
+    });
+    var notifyBar = document.getElementById('notif-bar');
+    if (notifyBar) notifyBar.parentElement.insertBefore(btn, notifyBar.nextSibling);
+}
+
+function saveNotifPrefs() {
+    var prefs = {
+        reminder: document.getElementById('pref-reminder')?.checked || false,
+        promo: document.getElementById('pref-promo')?.checked || false,
+        service: document.getElementById('pref-service')?.checked || false
+    };
+    localStorage.setItem('ecowash_notif_prefs', JSON.stringify(prefs));
+    document.body.querySelector('div:last-child')?.remove();
+    showToast('✅ Préférences enregistrées', 'success');
 }
 
