@@ -312,6 +312,11 @@ function initBooking() {
                 alert('Numéro de téléphone invalide.');
                 return;
             }
+            var unavailable = JSON.parse(localStorage.getItem('ecowash_unavailable') || '[]');
+            if (unavailable.some(function (d) { return d.date === data.date; })) {
+                alert('Cette date n\'est pas disponible. Veuillez choisir une autre date.');
+                return;
+            }
             if (data.name.length > 100 || data.address.length > 300) {
                 alert('Texte trop long.');
                 return;
@@ -330,6 +335,9 @@ function initBooking() {
         localStorage.setItem('ecowash_last_booking', JSON.stringify(data));
         scheduleBookingReminder(data);
         sendBookingEmail(data);
+        sendBookingWhatsApp(data);
+
+        logActivity('Nouveau rendez-vous : ' + data.name + ' - ' + data.service + ' le ' + data.date);
 
         if (data.frequency && data.frequency !== 'une_fois') {
             generateRecurringBookings(data);
@@ -1274,6 +1282,33 @@ function sendBookingEmail(data) {
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify(payload));
     } catch (e) {}
+}
+
+/* === WHATSAPP NOTIFICATION === */
+function sendBookingWhatsApp(data) {
+    var wp = C.whatsapp || '+22900000000';
+    var svcNames = { simple: 'Lavage Simple', complet: 'Lavage Complet', premium: 'Lavage Premium' };
+    var msg = '🫧 *EcoWash Bénin* - Confirmation de rendez-vous\n\n'
+        + '👤 Client : ' + (data.name || '') + '\n'
+        + '📞 Téléphone : ' + (data.phone || '') + '\n'
+        + '🚗 Véhicule : ' + (data.vehicle || '') + '\n'
+        + '🔧 Service : ' + (svcNames[data.service] || data.service) + '\n'
+        + '📅 Date : ' + (data.date || '') + '\n'
+        + '⏰ Heure : ' + (data.time || '') + '\n'
+        + '📍 Adresse : ' + (data.address || '') + '\n'
+        + '💰 Prix : ' + (data.price || '') + ' FCFA\n'
+        + (data.frequency && data.frequency !== 'Une fois' && data.frequency !== 'une_fois' ? '🔄 Fréquence : ' + data.frequency + '\n' : '')
+        + '\nMerci de votre confiance 🙏';
+    var url = 'https://wa.me/' + String(wp).replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+}
+
+/* === LOG ACTIVITY (also used by admin) === */
+function logActivity(msg) {
+    var logs = JSON.parse(localStorage.getItem('ecowash_logs') || '[]');
+    logs.push({ msg: msg, date: new Date().toISOString() });
+    if (logs.length > 500) logs = logs.slice(-500);
+    localStorage.setItem('ecowash_logs', JSON.stringify(logs));
 }
 
 /* === ADMIN SOND === */
